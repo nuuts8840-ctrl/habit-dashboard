@@ -334,7 +334,7 @@ function render(rows) {
   }).join("");
 
   const alerts = [];
-  if (!filled.length) alerts.push(["warn", "Одоогоор data байхгүй байна. Google Sheets дээр өнөөдрийн мөрийг бөглөөрэй."]);
+  if (!filled.length) alerts.push(["warn", "Data мөр олдсонгүй эсвэл dashboard таны баганын нэрийг танихгүй байна. Header нэрүүд: Date, Day #, Week #, Wake-up time, Phone-free bedtime, CISA study hours, Exercise minutes байх ёстой."]);
   if (filled.slice(-2).length === 2 && filled.slice(-2).every(r => r.cisa <= 0)) alerts.push(["badalert", "CISA risk: 2 өдөр дараалан CISA study 0 цаг байна. Өнөөдөр minimum 30 минут хий."]);
   if (filled.slice(-3).length === 3 && filled.slice(-3).every(r => r.exercise <= 0)) alerts.push(["warn", "Exercise risk: 3 өдөр дараалан дасгал 0 минут байна. 10 минут ч байсан хий."]);
   if (filled.slice(-2).length === 2 && filled.slice(-2).every(r => r.wakeMin !== null && r.wakeMin > timeToMinutes("08:00"))) alerts.push(["warn", "Wake-up risk: 2 өдөр дараалан 08:00-с хойш босож байна."]);
@@ -353,11 +353,11 @@ async function loadData() {
       const obj = {};
       headers.forEach((h, j) => obj[h] = arr[j] || "");
 
-      const day = num(get(obj, ["Day #", "Day", "Day#"])) || i + 1;
-      const wake = get(obj, ["Wake-up time", "Wake Time", "Wake"]);
-      const bed = get(obj, ["Phone-free bedtime", "Bedtime", "Phone free bedtime"]);
-      const cisa = num(get(obj, ["CISA study hours", "CISA Hours", "CISA"]));
-      const exercise = num(get(obj, ["Exercise minutes", "Exercise Min", "Exercise"]));
+      const day = num(get(obj, ["Day #", "Day", "Day#", "Өдөр", "Day number"])) || i + 1;
+      const wake = get(obj, ["Wake-up time", "Wake Time", "Wake", "Morning wake-up time", "Боссон цаг", "Өглөө боссон цаг"]);
+      const bed = get(obj, ["Phone-free bedtime", "Bedtime", "Phone free bedtime", "Утасгүй унтах цаг", "Унтах цаг"]);
+      const cisa = num(get(obj, ["CISA study hours", "CISA Hours", "CISA", "Study hours", "Суралцсан цаг", "CISA цаг"]));
+      const exercise = num(get(obj, ["Exercise minutes", "Exercise Min", "Exercise", "Exercise mins", "Дасгал минут", "Дасгал"]));
 
       const wakeMin = timeToMinutes(wake);
       const bedMin = timeToMinutes(bed);
@@ -369,14 +369,14 @@ async function loadData() {
       const score = filled ? avg([wakeScore, bedScore, cisaScore, exerciseScore]) : 0;
 
       return {
-        date:get(obj, ["Date"]),
+        date:get(obj, ["Date", "Огноо", "Day date"]) || `Day ${day}`,
         day,
         week:num(get(obj, ["Week #", "Week", "Week#"])) || Math.ceil(day / 7),
         wake, bed, cisa, exercise,
         wakeMin, bedMin, wakeScore, bedScore, cisaScore, exerciseScore,
         filled, score
       };
-    }).filter(r => r.date);
+    });
 
     render(rows);
   } catch (e) {
