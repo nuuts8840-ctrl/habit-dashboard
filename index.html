@@ -348,8 +348,18 @@ async function loadData() {
     if (!res.ok) throw new Error("CSV fetch failed: " + res.status);
     const text = await res.text();
     const raw = parseCSV(text).filter(r => r.some(c => String(c).trim() !== ""));
-    const headers = raw[0].map(cleanHeader);
-    const rows = raw.slice(1).map((arr, i) => {
+    const headerIndex = raw.findIndex(r => {
+      const h = r.map(cleanHeader);
+      return h.includes("date") && (h.includes("day#") || h.includes("day")) && h.some(x => x.includes("wake"));
+    });
+    if (headerIndex < 0) {
+      throw new Error("Header row олдсонгүй. CSV дотор Date, Day #, Wake-up time баганууд байх ёстой.");
+    }
+    const headers = raw[headerIndex].map(cleanHeader);
+    console.log("Header row index:", headerIndex + 1);
+    console.log("Detected CSV headers:", headers);
+    console.log("Raw CSV rows:", raw.length);
+    const rows = raw.slice(headerIndex + 1).map((arr, i) => {
       const obj = {};
       headers.forEach((h, j) => obj[h] = arr[j] || "");
 
