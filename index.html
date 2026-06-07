@@ -1,294 +1,121 @@
 <!doctype html>
 <html lang="mn">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>120 Day Habit Dashboard</title>
-  <style>
-    :root {
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#162033;
-      --muted:#667085;
-      --line:#e6e8ef;
-      --dark:#0f172a;
-      --blue:#2563eb;
-      --green:#22c55e;
-      --shadow:0 18px 44px rgba(15,23,42,.08);
-    }
-    * { box-sizing:border-box; }
-    body {
-      margin:0;
-      font-family:Inter, Segoe UI, Arial, sans-serif;
-      background:
-        radial-gradient(circle at 0 0, rgba(37,99,235,.18), transparent 420px),
-        radial-gradient(circle at 100% 0, rgba(34,197,94,.14), transparent 420px),
-        var(--bg);
-      color:var(--text);
-    }
-    main { max-width:1180px; margin:auto; padding:28px 16px 60px; }
-    .hero, .card, .kpi {
-      background:rgba(255,255,255,.9);
-      border:1px solid var(--line);
-      border-radius:24px;
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(10px);
-    }
-    .hero {
-      padding:28px;
-      display:grid;
-      grid-template-columns:1.4fr .6fr;
-      gap:18px;
-      margin-bottom:18px;
-      background:linear-gradient(135deg, rgba(239,246,255,.95), rgba(240,253,244,.95));
-    }
-    h1 { margin:0 0 10px; font-size:clamp(30px,4vw,50px); letter-spacing:-.04em; line-height:1; }
-    h2 { margin:0 0 14px; font-size:20px; letter-spacing:-.02em; }
-    p { margin:0; line-height:1.55; }
-    .muted { color:var(--muted); }
-    .btn {
-      border:0;
-      background:var(--dark);
-      color:white;
-      padding:11px 15px;
-      border-radius:14px;
-      font-weight:800;
-      cursor:pointer;
-      text-decoration:none;
-      display:inline-block;
-      margin-top:14px;
-      margin-right:8px;
-    }
-    .btn.secondary { background:#fff; color:var(--dark); border:1px solid var(--line); }
-    .today {
-      padding:22px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-    }
-    .today .score { font-size:44px; font-weight:900; letter-spacing:-.05em; margin-top:6px; }
-    .label { color:var(--muted); font-size:13px; font-weight:750; }
-    .grid { display:grid; gap:16px; }
-    .kpis { grid-template-columns:repeat(4,1fr); margin-bottom:18px; }
-    .kpi { padding:18px; }
-    .value { font-size:31px; font-weight:900; letter-spacing:-.04em; margin-top:8px; }
-    .sub { color:var(--muted); font-size:12px; margin-top:4px; }
-    .main { grid-template-columns:1.25fr .75fr; align-items:start; }
-    .card { padding:20px; margin-bottom:18px; }
-    .heatmap {
-      display:grid;
-      grid-template-columns:repeat(20, minmax(10px,1fr));
-      gap:7px;
-    }
-    .cell {
-      aspect-ratio:1;
-      border-radius:8px;
-      background:#e5e7eb;
-      border:1px solid rgba(15,23,42,.04);
-      position:relative;
-      cursor:default;
-    }
-    .cell:hover::after {
-      content:attr(data-tip);
-      position:absolute;
-      z-index:20;
-      left:50%;
-      bottom:calc(100% + 8px);
-      transform:translateX(-50%);
-      white-space:pre-line;
-      background:#111827;
-      color:white;
-      padding:9px 11px;
-      border-radius:12px;
-      font-size:12px;
-      width:max-content;
-      max-width:260px;
-      box-shadow:0 12px 25px rgba(0,0,0,.25);
-    }
-    .empty { background:#e5e7eb; }
-    .bad { background:#fee2e2; }
-    .weak { background:#fed7aa; }
-    .ok { background:#fef3c7; }
-    .good { background:#bbf7d0; }
-    .best { background:#22c55e; }
-    .legend { display:flex; justify-content:flex-end; gap:7px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-    .legend span { font-size:12px; color:var(--muted); }
-    .box { width:18px; height:18px; border-radius:6px; }
-    .habit { border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:12px; background:#fff; }
-    .line { display:flex; justify-content:space-between; gap:12px; font-weight:850; margin-bottom:10px; }
-    .bar { height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
-    .bar > div { height:100%; background:linear-gradient(90deg,#60a5fa,#22c55e); border-radius:999px; }
-    .alert { padding:14px; border-radius:16px; border:1px solid #bbf7d0; background:#f0fdf4; margin-bottom:10px; line-height:1.45; font-size:14px; }
-    .alert.warn { border-color:#fed7aa; background:#fff7ed; }
-    .alert.badalert { border-color:#fecaca; background:#fef2f2; }
-    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:18px; }
-    table { width:100%; border-collapse:collapse; min-width:720px; background:white; }
-    th, td { padding:12px; border-bottom:1px solid var(--line); text-align:left; font-size:13px; }
-    th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:12px; letter-spacing:.04em; }
-    @media (max-width:900px) {
-      .hero, .kpis, .main { grid-template-columns:1fr; }
-      .heatmap { grid-template-columns:repeat(12, minmax(12px,1fr)); gap:6px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>120 Day Habit Dashboard</title>
+<style>
+:root {
+  --bg:#f6f7fb;--card:#fff;--text:#162033;--muted:#667085;--line:#e6e8ef;
+  --dark:#0f172a;--shadow:0 16px 42px rgba(15,23,42,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at 0 0,#dbeafe,transparent 420px),radial-gradient(circle at 100% 0,#dcfce7,transparent 420px),var(--bg);color:var(--text)}
+main{max-width:1180px;margin:auto;padding:28px 16px 60px}
+.hero,.card,.kpi{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+.hero{padding:28px;display:grid;grid-template-columns:1.4fr .6fr;gap:18px;margin-bottom:18px;background:linear-gradient(135deg,#eff6ff,#f0fdf4)}
+h1{margin:0 0 10px;font-size:clamp(30px,4vw,50px);letter-spacing:-.04em;line-height:1}
+h2{margin:0 0 14px;font-size:20px}
+p{margin:0;line-height:1.55} .muted{color:var(--muted)}
+.btn{border:0;background:var(--dark);color:white;padding:11px 15px;border-radius:14px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block;margin-top:14px;margin-right:8px}
+.btn.secondary{background:#fff;color:var(--dark);border:1px solid var(--line)}
+.today{padding:22px;display:flex;flex-direction:column;justify-content:space-between}
+.today .score{font-size:44px;font-weight:900;letter-spacing:-.05em;margin-top:6px}
+.label{color:var(--muted);font-size:13px;font-weight:750}
+.grid{display:grid;gap:16px} .kpis{grid-template-columns:repeat(4,1fr);margin-bottom:18px} .kpi{padding:18px}
+.value{font-size:31px;font-weight:900;letter-spacing:-.04em;margin-top:8px} .sub{color:var(--muted);font-size:12px;margin-top:4px}
+.main{grid-template-columns:1.25fr .75fr;align-items:start} .card{padding:20px;margin-bottom:18px}
+.heatmap{display:grid;grid-template-columns:repeat(20,minmax(10px,1fr));gap:7px}
+.cell{aspect-ratio:1;border-radius:8px;background:#e5e7eb;border:1px solid rgba(15,23,42,.04);position:relative}
+.cell:hover:after{content:attr(data-tip);position:absolute;z-index:20;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);white-space:pre-line;background:#111827;color:#fff;padding:9px 11px;border-radius:12px;font-size:12px;width:max-content;max-width:260px;box-shadow:0 12px 25px rgba(0,0,0,.25)}
+.empty{background:#e5e7eb}.bad{background:#fee2e2}.weak{background:#fed7aa}.ok{background:#fef3c7}.good{background:#bbf7d0}.best{background:#22c55e}
+.legend{display:flex;justify-content:flex-end;gap:7px;align-items:center;margin-top:12px;flex-wrap:wrap}.legend span{font-size:12px;color:var(--muted)}.box{width:18px;height:18px;border-radius:6px}
+.habit{border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px;background:#fff}.line{display:flex;justify-content:space-between;gap:12px;font-weight:850;margin-bottom:10px}.bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}.bar>div{height:100%;background:linear-gradient(90deg,#60a5fa,#22c55e);border-radius:999px}
+.alert{padding:14px;border-radius:16px;border:1px solid #bbf7d0;background:#f0fdf4;margin-bottom:10px;line-height:1.45;font-size:14px}.alert.warn{border-color:#fed7aa;background:#fff7ed}.alert.badalert{border-color:#fecaca;background:#fef2f2}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px}table{width:100%;border-collapse:collapse;min-width:720px;background:white}th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{background:#f8fafc;color:#475467;text-transform:uppercase;font-size:12px;letter-spacing:.04em}
+@media(max-width:900px){.hero,.kpis,.main{grid-template-columns:1fr}.heatmap{grid-template-columns:repeat(12,minmax(12px,1fr));gap:6px}}
+</style>
 </head>
 <body>
 <main>
-  <section class="hero">
-    <div>
-      <h1>🔥 120 Day Habit Dashboard</h1>
-      <p class="muted">Google Sheets дээр өдөр бүр 30 секундэд бөглөнө. Энэ dashboard CSV data-г уншаад KPI, streak, heatmap, weekly summary, risk alert гаргана.</p>
-      <a class="btn secondary" target="_blank" href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSA3Kzp8F88Z6YvALVyO6Cas4gY0lZ0hiuo4zoHTGgeQSmD6Pxs-uvXK8GQtEak6g/pub?gid=2038397949&single=true&output=csv">Open CSV</a>
-      <button class="btn" onclick="loadData()">Refresh Dashboard</button>
-    </div>
-    <div class="today">
-      <div>
-        <div class="label">Latest filled day score</div>
-        <div id="latestScore" class="score">--%</div>
-        <div id="latestText" class="sub">Loading data...</div>
-      </div>
-    </div>
-  </section>
+<section class="hero">
+  <div>
+    <h1>🔥 120 Day Habit Dashboard</h1>
+    <p class="muted">Энэ хувилбар CSV fetch ашиглахгүй. Google Sheets GViz JSONP аргаар data уншина.</p>
+    <button class="btn" onclick="loadData()">Refresh Dashboard</button>
+  </div>
+  <div class="today"><div><div class="label">Latest filled day score</div><div id="latestScore" class="score">--%</div><div id="latestText" class="sub">Loading data...</div></div></div>
+</section>
 
-  <section class="grid kpis">
-    <div class="kpi"><div class="label">Completed days</div><div id="completed" class="value">--</div><div class="sub">120 өдрөөс бөглөсөн</div></div>
-    <div class="kpi"><div class="label">Overall score</div><div id="overall" class="value">--%</div><div class="sub">Нийт habit оноо</div></div>
-    <div class="kpi"><div class="label">Current streak</div><div id="currentStreak" class="value">--</div><div class="sub">Дараалж сайн хийсэн өдөр</div></div>
-    <div class="kpi"><div class="label">Best streak</div><div id="bestStreak" class="value">--</div><div class="sub">Хамгийн урт streak</div></div>
-    <div class="kpi"><div class="label">CISA total hours</div><div id="cisaTotal" class="value">--</div><div class="sub">Нийт суралцсан цаг</div></div>
-    <div class="kpi"><div class="label">Exercise total</div><div id="exerciseTotal" class="value">--</div><div class="sub">Нийт дасгалын минут</div></div>
-    <div class="kpi"><div class="label">Average wake-up</div><div id="avgWake" class="value">--</div><div class="sub">Дундаж боссон цаг</div></div>
-    <div class="kpi"><div class="label">Average bedtime</div><div id="avgBed" class="value">--</div><div class="sub">Дундаж утасгүй орсон цаг</div></div>
-  </section>
+<section class="grid kpis">
+  <div class="kpi"><div class="label">Completed days</div><div id="completed" class="value">--</div><div class="sub">120 өдрөөс бөглөсөн</div></div>
+  <div class="kpi"><div class="label">Overall score</div><div id="overall" class="value">--%</div><div class="sub">Нийт habit оноо</div></div>
+  <div class="kpi"><div class="label">Current streak</div><div id="currentStreak" class="value">--</div><div class="sub">Дараалж сайн хийсэн өдөр</div></div>
+  <div class="kpi"><div class="label">Best streak</div><div id="bestStreak" class="value">--</div><div class="sub">Хамгийн урт streak</div></div>
+  <div class="kpi"><div class="label">CISA total hours</div><div id="cisaTotal" class="value">--</div><div class="sub">Нийт суралцсан цаг</div></div>
+  <div class="kpi"><div class="label">Exercise total</div><div id="exerciseTotal" class="value">--</div><div class="sub">Нийт дасгалын минут</div></div>
+  <div class="kpi"><div class="label">Average wake-up</div><div id="avgWake" class="value">--</div><div class="sub">Дундаж боссон цаг</div></div>
+  <div class="kpi"><div class="label">Average bedtime</div><div id="avgBed" class="value">--</div><div class="sub">Дундаж утасгүй орсон цаг</div></div>
+</section>
 
-  <section class="grid main">
-    <div class="card">
-      <h2>120-day overall heatmap</h2>
-      <div id="heatmap" class="heatmap"></div>
-      <div class="legend">
-        <span>Weak</span><div class="box bad"></div><div class="box weak"></div><div class="box ok"></div><div class="box good"></div><div class="box best"></div><span>Excellent</span>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Habit performance</h2>
-      <div id="habits"></div>
-    </div>
-  </section>
+<section class="grid main">
+  <div class="card"><h2>120-day overall heatmap</h2><div id="heatmap" class="heatmap"></div><div class="legend"><span>Weak</span><div class="box bad"></div><div class="box weak"></div><div class="box ok"></div><div class="box good"></div><div class="box best"></div><span>Excellent</span></div></div>
+  <div class="card"><h2>Habit performance</h2><div id="habits"></div></div>
+</section>
 
-  <section class="grid main">
-    <div class="card">
-      <h2>Weekly summary</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Week</th><th>Days filled</th><th>Avg score</th><th>CISA hours</th><th>Exercise min</th></tr></thead>
-          <tbody id="weekly"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Risk alerts</h2>
-      <div id="alerts"></div>
-    </div>
-  </section>
+<section class="grid main">
+  <div class="card"><h2>Weekly summary</h2><div class="table-wrap"><table><thead><tr><th>Week</th><th>Days filled</th><th>Avg score</th><th>CISA hours</th><th>Exercise min</th></tr></thead><tbody id="weekly"></tbody></table></div></div>
+  <div class="card"><h2>Risk alerts</h2><div id="alerts"></div></div>
+</section>
 </main>
 
 <script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSA3Kzp8F88Z6YvALVyO6Cas4gY0lZ0hiuo4zoHTGgeQSmD6Pxs-uvXK8GQtEak6g/pub?gid=2038397949&single=true&output=csv";
+const GVIZ_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSA3Kzp8F88Z6YvALVyO6Cas4gY0lZ0hiuo4zoHTGgeQSmD6Pxs-uvXK8GQtEak6g/gviz/tq?gid=2038397949&tqx=out:json;responseHandler:__sheetData";
 const TARGET = { wake:"07:00", bed:"23:00", cisa:2, exercise:30 };
-
 const el = id => document.getElementById(id);
 
-function parseCSV(text) {
-  const rows = [];
-  let row = [], cell = "", quoted = false;
-  for (let i=0; i<text.length; i++) {
-    const c = text[i], next = text[i+1];
-    if (c === '"' && quoted && next === '"') { cell += '"'; i++; }
-    else if (c === '"') quoted = !quoted;
-    else if (c === "," && !quoted) { row.push(cell); cell = ""; }
-    else if ((c === "\n" || c === "\r") && !quoted) {
-      if (cell || row.length) { row.push(cell); rows.push(row); row=[]; cell=""; }
-      if (c === "\r" && next === "\n") i++;
-    } else cell += c;
-  }
-  if (cell || row.length) { row.push(cell); rows.push(row); }
-  return rows;
+function cleanHeader(s) { return String(s || "").trim().toLowerCase().replace(/[^a-z0-9#]/g, ""); }
+function num(v) { const n = Number(String(v ?? "").trim()); return Number.isFinite(n) ? n : 0; }
+function timeToMinutes(v) { if(!v)return null; const p=String(v).trim().split(":"); if(p.length<2)return null; const h=Number(p[0]),m=Number(p[1]); return Number.isFinite(h)&&Number.isFinite(m)?h*60+m:null; }
+function minutesToTime(v) { if(v===null||!Number.isFinite(v))return "--"; v=Math.round(v); v=((v%1440)+1440)%1440; return String(Math.floor(v/60)).padStart(2,"0")+":"+String(v%60).padStart(2,"0"); }
+function avg(a) { const b=a.filter(x=>x!==null&&Number.isFinite(x)); return b.length?b.reduce((x,y)=>x+y,0)/b.length:null; }
+function scoreTime(actual,target) { if(actual===null)return null; const t=timeToMinutes(target); if(actual<=t)return 100; if(actual<=t+30)return 70; if(actual<=t+60)return 40; return 10; }
+function scoreClass(score,filled) { if(!filled)return "empty"; if(score>=90)return "best"; if(score>=70)return "good"; if(score>=50)return "ok"; if(score>=25)return "weak"; return "bad"; }
+function calcStreak(rows) { let best=0,run=0,current=0; for(const r of rows){ if(r.filled&&r.score>=50){run++;best=Math.max(best,run)} else if(r.filled)run=0; } for(let i=rows.length-1;i>=0;i--){ if(!rows[i].filled)continue; if(rows[i].score>=50)current++; else break; } return {current,best}; }
+function habitCard(name,pct,sub) { pct=Math.round(pct||0); return `<div class="habit"><div class="line"><span>${name}</span><span>${pct}%</span></div><div class="bar"><div style="width:${Math.max(0,Math.min(100,pct))}%"></div></div><div class="sub">${sub}</div></div>`; }
+
+function getCellValue(cell) {
+  if(!cell) return "";
+  if(cell.f !== undefined) return String(cell.f).trim();
+  if(cell.v !== undefined) return String(cell.v).trim();
+  return "";
 }
 
-function cleanHeader(s) { return String(s || "").trim().toLowerCase().replace(/[^a-z0-9#]/g, ""); }
-function get(obj, names) {
-  for (const name of names) {
+function gvizToObjects(response) {
+  if(!response || response.status !== "ok") throw new Error("GViz response status: " + (response && response.status));
+  const table = response.table;
+  const headers = table.cols.map(c => cleanHeader(c.label || c.id || ""));
+  return table.rows.map(row => {
+    const obj = {};
+    headers.forEach((h,i)=> obj[h] = getCellValue(row.c[i]));
+    return obj;
+  });
+}
+
+function get(obj,names) {
+  for(const name of names) {
     const k = cleanHeader(name);
-    if (obj[k] !== undefined) return obj[k];
+    if(obj[k] !== undefined) return obj[k];
   }
   return "";
 }
-function num(v) {
-  const n = Number(String(v ?? "").trim());
-  return Number.isFinite(n) ? n : 0;
-}
-function timeToMinutes(v) {
-  if (!v) return null;
-  const parts = String(v).trim().split(":");
-  if (parts.length < 2) return null;
-  const h = Number(parts[0]), m = Number(parts[1]);
-  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
-}
-function minutesToTime(v) {
-  if (v === null || !Number.isFinite(v)) return "--";
-  v = Math.round(v);
-  v = ((v % 1440) + 1440) % 1440;
-  return String(Math.floor(v / 60)).padStart(2, "0") + ":" + String(v % 60).padStart(2, "0");
-}
-function avg(arr) {
-  const clean = arr.filter(x => x !== null && Number.isFinite(x));
-  return clean.length ? clean.reduce((a,b)=>a+b,0) / clean.length : null;
-}
-function scoreTime(actual, target) {
-  if (actual === null) return null;
-  const t = timeToMinutes(target);
-  if (actual <= t) return 100;
-  if (actual <= t + 30) return 70;
-  if (actual <= t + 60) return 40;
-  return 10;
-}
-function scoreClass(score, filled) {
-  if (!filled) return "empty";
-  if (score >= 90) return "best";
-  if (score >= 70) return "good";
-  if (score >= 50) return "ok";
-  if (score >= 25) return "weak";
-  return "bad";
-}
-function calcStreak(rows) {
-  let best = 0, run = 0, current = 0;
-  for (const r of rows) {
-    if (r.filled && r.score >= 50) { run++; best = Math.max(best, run); }
-    else if (r.filled) run = 0;
-  }
-  for (let i=rows.length-1; i>=0; i--) {
-    if (!rows[i].filled) continue;
-    if (rows[i].score >= 50) current++;
-    else break;
-  }
-  return { current, best };
-}
-function habitCard(name, pct, sub) {
-  pct = Math.round(pct || 0);
-  return `<div class="habit">
-    <div class="line"><span>${name}</span><span>${pct}%</span></div>
-    <div class="bar"><div style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
-    <div class="sub">${sub}</div>
-  </div>`;
-}
 
 function render(rows) {
-  const filled = rows.filter(r => r.filled);
-  const overall = avg(filled.map(r => r.score)) || 0;
+  const filled = rows.filter(r=>r.filled);
+  const overall = avg(filled.map(r=>r.score)) || 0;
   const streak = calcStreak(rows);
   const totalCisa = filled.reduce((s,r)=>s+r.cisa,0);
   const totalExercise = filled.reduce((s,r)=>s+r.exercise,0);
-  const avWake = avg(filled.map(r=>r.wakeMin));
-  const avBed = avg(filled.map(r=>r.bedMin));
 
   el("completed").textContent = `${filled.length} / ${rows.length}`;
   el("overall").textContent = `${Math.round(overall)}%`;
@@ -296,93 +123,77 @@ function render(rows) {
   el("bestStreak").textContent = streak.best;
   el("cisaTotal").textContent = totalCisa.toFixed(1);
   el("exerciseTotal").textContent = Math.round(totalExercise);
-  el("avgWake").textContent = minutesToTime(avWake);
-  el("avgBed").textContent = minutesToTime(avBed);
+  el("avgWake").textContent = minutesToTime(avg(filled.map(r=>r.wakeMin)));
+  el("avgBed").textContent = minutesToTime(avg(filled.map(r=>r.bedMin)));
 
-  const latest = filled[filled.length - 1];
-  if (latest) {
-    el("latestScore").textContent = `${Math.round(latest.score)}%`;
-    el("latestText").textContent = `${latest.date} • CISA ${latest.cisa}h • Exercise ${latest.exercise}m`;
-  } else {
-    el("latestScore").textContent = "--%";
-    el("latestText").textContent = "Data оруулаагүй байна";
-  }
+  const latest = filled[filled.length-1];
+  el("latestScore").textContent = latest ? `${Math.round(latest.score)}%` : "--%";
+  el("latestText").textContent = latest ? `${latest.date} • CISA ${latest.cisa}h • Exercise ${latest.exercise}m` : "Data оруулаагүй байна";
 
   el("heatmap").innerHTML = rows.map(r => {
-    const tip = `${r.date} • Day ${r.day}\nScore: ${Math.round(r.score)}%\nWake: ${r.wake || "-"}\nBed: ${r.bed || "-"}\nCISA: ${r.cisa}h\nExercise: ${r.exercise}m`;
-    return `<div class="cell ${scoreClass(r.score, r.filled)}" data-tip="${tip.replace(/"/g,"&quot;")}"></div>`;
+    const tip = `${r.date} • Day ${r.day}\nScore: ${Math.round(r.score)}%\nWake: ${r.wake||"-"}\nBed: ${r.bed||"-"}\nCISA: ${r.cisa}h\nExercise: ${r.exercise}m`;
+    return `<div class="cell ${scoreClass(r.score,r.filled)}" data-tip="${tip.replace(/"/g,"&quot;")}"></div>`;
   }).join("");
 
   el("habits").innerHTML =
-    habitCard("🌅 Wake-up discipline", avg(filled.map(r=>r.wakeScore)) || 0, "Target: " + TARGET.wake) +
-    habitCard("📵 Phone-free bedtime", avg(filled.map(r=>r.bedScore)) || 0, "Target: " + TARGET.bed) +
-    habitCard("📘 CISA study", avg(filled.map(r=>r.cisaScore)) || 0, "Target: " + TARGET.cisa + " hours/day") +
-    habitCard("🏃 Exercise", avg(filled.map(r=>r.exerciseScore)) || 0, "Target: " + TARGET.exercise + " min/day");
+    habitCard("🌅 Wake-up discipline", avg(filled.map(r=>r.wakeScore)) || 0, "Target: "+TARGET.wake) +
+    habitCard("📵 Phone-free bedtime", avg(filled.map(r=>r.bedScore)) || 0, "Target: "+TARGET.bed) +
+    habitCard("📘 CISA study", avg(filled.map(r=>r.cisaScore)) || 0, "Target: "+TARGET.cisa+" hours/day") +
+    habitCard("🏃 Exercise", avg(filled.map(r=>r.exerciseScore)) || 0, "Target: "+TARGET.exercise+" min/day");
 
   const weeks = {};
   rows.forEach(r => (weeks[r.week] ??= []).push(r));
   el("weekly").innerHTML = Object.keys(weeks).sort((a,b)=>a-b).map(w => {
-    const arr = weeks[w];
-    const f = arr.filter(r=>r.filled);
-    return `<tr>
-      <td>Week ${w}</td>
-      <td>${f.length} / ${arr.length}</td>
-      <td>${f.length ? Math.round(avg(f.map(r=>r.score))) + "%" : "--"}</td>
-      <td>${f.reduce((s,r)=>s+r.cisa,0).toFixed(1)}</td>
-      <td>${Math.round(f.reduce((s,r)=>s+r.exercise,0))}</td>
-    </tr>`;
+    const arr = weeks[w], f = arr.filter(r=>r.filled);
+    return `<tr><td>Week ${w}</td><td>${f.length} / ${arr.length}</td><td>${f.length?Math.round(avg(f.map(r=>r.score)))+"%":"--"}</td><td>${f.reduce((s,r)=>s+r.cisa,0).toFixed(1)}</td><td>${Math.round(f.reduce((s,r)=>s+r.exercise,0))}</td></tr>`;
   }).join("");
 
   const alerts = [];
-  if (!filled.length) alerts.push(["warn", "Одоогоор data байхгүй байна. Google Sheets дээр өнөөдрийн мөрийг бөглөөрэй."]);
-  if (filled.slice(-2).length === 2 && filled.slice(-2).every(r => r.cisa <= 0)) alerts.push(["badalert", "CISA risk: 2 өдөр дараалан CISA study 0 цаг байна. Өнөөдөр minimum 30 минут хий."]);
-  if (filled.slice(-3).length === 3 && filled.slice(-3).every(r => r.exercise <= 0)) alerts.push(["warn", "Exercise risk: 3 өдөр дараалан дасгал 0 минут байна. 10 минут ч байсан хий."]);
-  if (filled.slice(-2).length === 2 && filled.slice(-2).every(r => r.wakeMin !== null && r.wakeMin > timeToMinutes("08:00"))) alerts.push(["warn", "Wake-up risk: 2 өдөр дараалан 08:00-с хойш босож байна."]);
-  if (!alerts.length) alerts.push(["", "Одоогоор том risk alert алга. Consistency сайн байна."]);
-  el("alerts").innerHTML = alerts.map(a => `<div class="alert ${a[0]}">${a[1]}</div>`).join("");
+  if(!filled.length) alerts.push(["warn","Одоогоор data байхгүй байна. Google Sheets дээр өнөөдрийн мөрийг бөглөөрэй."]);
+  if(filled.slice(-2).length===2 && filled.slice(-2).every(r=>r.cisa<=0)) alerts.push(["badalert","CISA risk: 2 өдөр дараалан CISA study 0 цаг байна. Өнөөдөр minimum 30 минут хий."]);
+  if(filled.slice(-3).length===3 && filled.slice(-3).every(r=>r.exercise<=0)) alerts.push(["warn","Exercise risk: 3 өдөр дараалан дасгал 0 минут байна."]);
+  if(!alerts.length) alerts.push(["","Одоогоор том risk alert алга. Consistency сайн байна."]);
+  el("alerts").innerHTML = alerts.map(a=>`<div class="alert ${a[0]}">${a[1]}</div>`).join("");
 }
 
-async function loadData() {
+window.__sheetData = function(response) {
   try {
-    const res = await fetch(CSV_URL + "&v=" + Date.now());
-    if (!res.ok) throw new Error("CSV fetch failed: " + res.status);
-    const text = await res.text();
-    const raw = parseCSV(text).filter(r => r.some(c => String(c).trim() !== ""));
-    const headers = raw[0].map(cleanHeader);
-    const rows = raw.slice(1).map((arr, i) => {
-      const obj = {};
-      headers.forEach((h, j) => obj[h] = arr[j] || "");
-
-      const day = num(get(obj, ["Day #", "Day", "Day#"])) || i + 1;
-      const wake = get(obj, ["Wake-up time", "Wake Time", "Wake"]);
-      const bed = get(obj, ["Phone-free bedtime", "Bedtime", "Phone free bedtime"]);
-      const cisa = num(get(obj, ["CISA study hours", "CISA Hours", "CISA"]));
-      const exercise = num(get(obj, ["Exercise minutes", "Exercise Min", "Exercise"]));
-
+    const objects = gvizToObjects(response);
+    const rows = objects.map((obj,i) => {
+      const day = num(get(obj,["Day #","Day","Day#"])) || i+1;
+      const wake = get(obj,["Wake-up time","Wake Time","Wake"]);
+      const bed = get(obj,["Phone-free bedtime","Bedtime","Phone free bedtime"]);
+      const cisa = num(get(obj,["CISA study hours","CISA Hours","CISA"]));
+      const exercise = num(get(obj,["Exercise minutes","Exercise Min","Exercise"]));
       const wakeMin = timeToMinutes(wake);
       const bedMin = timeToMinutes(bed);
-      const wakeScore = scoreTime(wakeMin, TARGET.wake) ?? 0;
-      const bedScore = scoreTime(bedMin, TARGET.bed) ?? 0;
-      const cisaScore = Math.min(100, (cisa / TARGET.cisa) * 100);
-      const exerciseScore = Math.min(100, (exercise / TARGET.exercise) * 100);
+      const wakeScore = scoreTime(wakeMin,TARGET.wake) ?? 0;
+      const bedScore = scoreTime(bedMin,TARGET.bed) ?? 0;
+      const cisaScore = Math.min(100,(cisa/TARGET.cisa)*100);
+      const exerciseScore = Math.min(100,(exercise/TARGET.exercise)*100);
       const filled = !!(wake || bed || cisa || exercise);
-      const score = filled ? avg([wakeScore, bedScore, cisaScore, exerciseScore]) : 0;
-
       return {
-        date:get(obj, ["Date"]),
-        day,
-        week:num(get(obj, ["Week #", "Week", "Week#"])) || Math.ceil(day / 7),
-        wake, bed, cisa, exercise,
-        wakeMin, bedMin, wakeScore, bedScore, cisaScore, exerciseScore,
-        filled, score
+        date:get(obj,["Date"]), day, week:num(get(obj,["Week #","Week","Week#"])) || Math.ceil(day/7),
+        wake, bed, cisa, exercise, wakeMin, bedMin, wakeScore, bedScore, cisaScore, exerciseScore,
+        filled, score: filled ? avg([wakeScore,bedScore,cisaScore,exerciseScore]) : 0
       };
-    }).filter(r => r.date);
-
+    }).filter(r=>r.date);
     render(rows);
-  } catch (e) {
-    el("alerts").innerHTML = `<div class="alert badalert">Dashboard data уншиж чадсангүй: ${e.message}</div>`;
+  } catch(e) {
+    el("alerts").innerHTML = `<div class="alert badalert">GViz data уншиж чадсангүй: ${e.message}</div>`;
     console.error(e);
   }
+};
+
+function loadData() {
+  el("latestText").textContent = "Loading data...";
+  const old = document.getElementById("gviz-loader");
+  if(old) old.remove();
+  const s = document.createElement("script");
+  s.id = "gviz-loader";
+  s.src = GVIZ_URL + ";rand:" + Date.now();
+  s.onerror = () => el("alerts").innerHTML = '<div class="alert badalert">Google Sheets GViz script load failed. Publish setting болон gid шалга.</div>';
+  document.body.appendChild(s);
 }
 
 loadData();
