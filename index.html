@@ -112,6 +112,24 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
 .spark-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:16px; box-shadow:var(--shadow2); }
 .spark-value { font-size:26px; font-weight:950; letter-spacing:-.04em; margin-top:6px; }
 .spark-label { color:var(--muted); font-size:12px; font-weight:800; }
+
+.daily-chart-controls { display:flex; flex-wrap:wrap; gap:9px; margin:4px 0 14px; }
+.chart-chip {
+  border:1px solid var(--line); background:#fff; color:var(--text);
+  padding:9px 11px; border-radius:999px; font-weight:850; cursor:pointer;
+}
+.chart-chip.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+.chart-insights { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; }
+.insight {
+  border:1px solid var(--line); border-radius:16px; background:#fff; padding:12px;
+}
+.insight .n { font-size:22px; font-weight:950; letter-spacing:-.04em; margin-top:4px; }
+.daily-svg { width:100%; height:280px; display:block; overflow:visible; }
+.band-label { font-size:11px; fill:#64748b; }
+@media (max-width:960px) {
+  .chart-insights { grid-template-columns:1fr 1fr; }
+}
+
 @media (max-width:960px) {
   .chart-grid, .spark-row { grid-template-columns:1fr; }
 }
@@ -175,6 +193,27 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
   </section>
 
 
+
+  <section class="card">
+    <h2>Daily 120-day trendline</h2>
+    <p class="muted" style="margin-bottom:12px">Өдөр бүрийн trendline. Avg line, good line, bad line, target zone-уудтай.</p>
+    <div class="daily-chart-controls">
+      <button class="chart-chip active" data-daily="overall" onclick="setDailyTrend('overall')">Overall score</button>
+      <button class="chart-chip" data-daily="cisa" onclick="setDailyTrend('cisa')">📘 CISA hours</button>
+      <button class="chart-chip" data-daily="exercise" onclick="setDailyTrend('exercise')">🏃 Exercise min</button>
+      <button class="chart-chip" data-daily="wake" onclick="setDailyTrend('wake')">🌅 Wake-up time</button>
+      <button class="chart-chip" data-daily="bed" onclick="setDailyTrend('bed')">📵 Bedtime</button>
+    </div>
+    <div class="chart-insights">
+      <div class="insight"><div class="label">Average</div><div id="dailyAvg" class="n">--</div></div>
+      <div class="insight"><div class="label">Best</div><div id="dailyBest" class="n">--</div></div>
+      <div class="insight"><div class="label">Bad days</div><div id="dailyBad" class="n">--</div></div>
+      <div class="insight"><div class="label">Trend</div><div id="dailyTrend" class="n">--</div></div>
+    </div>
+    <div id="dailyTrendChart"></div>
+    <div id="dailyTrendNote" class="footer-note">Overall score: good ≥70%, bad &lt;50%.</div>
+  </section>
+
   <section class="grid spark-row">
     <div class="spark-card"><div class="spark-label">7-day avg CISA</div><div id="avgCisa7" class="spark-value">--</div><div class="sub">Target: 2h/day</div></div>
     <div class="spark-card"><div class="spark-label">7-day avg exercise</div><div id="avgExercise7" class="spark-value">--</div><div class="sub">Target: 30m/day</div></div>
@@ -208,6 +247,7 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQI6-P7HNavzDcK
 const TARGET = { wake:"07:00", bed:"23:00", cisa:2, exercise:30 };
 let ALL_ROWS = [];
 let ACTIVE_FILTER = "overall";
+let ACTIVE_DAILY_TREND = "overall";
 const el = id => document.getElementById(id);
 
 function parseCSV(text) {
@@ -371,6 +411,147 @@ function renderWeekly(rows) {
       <td>${missingTxt}</td><td>${risk}</td>
     </tr>`;
   }).join("");
+}
+
+
+function setDailyTrend(name) {
+  ACTIVE_DAILY_TREND = name;
+  document.querySelectorAll(".chart-chip").forEach(btn => btn.classList.toggle("active", btn.dataset.daily === name));
+  renderDailyTrend(ALL_ROWS);
+}
+
+function dailyMetricConfig(name) {
+  const cfg = {
+    overall: {
+      label:"Overall score", unit:"%", min:0, max:100, good:70, bad:50, target:70,
+      value:r=>r.filled ? r.score : null,
+      format:v=>Math.round(v)+"%",
+      note:"Overall score: good ≥70%, bad <50%. Avg line нь бөглөсөн өдрүүдийн дундаж."
+    },
+    cisa: {
+      label:"CISA study hours", unit:"h", min:0, max:null, good:2, bad:0.5, target:2,
+      value:r=>r.cisaRaw!=="" ? r.cisa : null,
+      format:v=>(Math.round(v*10)/10)+"h",
+      note:"CISA: target 2h/day. Good ≥2h, bad <0.5h. Avg line нь өдөр тутмын дундаж цаг."
+    },
+    exercise: {
+      label:"Exercise minutes", unit:"m", min:0, max:null, good:30, bad:10, target:30,
+      value:r=>r.exerciseRaw!=="" ? r.exercise : null,
+      format:v=>Math.round(v)+"m",
+      note:"Exercise: target 30m/day. Good ≥30m, bad <10m."
+    },
+    wake: {
+      label:"Wake-up time", unit:"", min:timeToMinutes("05:00"), max:timeToMinutes("10:00"), good:timeToMinutes("07:00"), bad:timeToMinutes("08:00"), target:timeToMinutes("07:00"),
+      value:r=>r.wakeMin,
+      format:v=>minutesToTime(v),
+      note:"Wake-up: target 07:00. Доошоо байх тусам сайн. Bad line = 08:00."
+    },
+    bed: {
+      label:"Phone-free bedtime", unit:"", min:timeToMinutes("21:00"), max:timeToMinutes("02:00")+1440, good:timeToMinutes("23:00"), bad:timeToMinutes("00:00")+1440, target:timeToMinutes("23:00"),
+      value:r=>r.bedAdj,
+      format:v=>minutesToTime(v),
+      note:"Bedtime: target 23:00. 01:00 бол маргаашийн 01:00 гэж үзнэ. Bad line = 00:00."
+    }
+  };
+  return cfg[name] || cfg.overall;
+}
+
+function linearSlope(values) {
+  const pts = values.map((v,i)=>({x:i+1,y:v})).filter(p=>p.y!==null&&Number.isFinite(p.y));
+  if (pts.length < 2) return 0;
+  const mx = avg(pts.map(p=>p.x));
+  const my = avg(pts.map(p=>p.y));
+  const num = pts.reduce((s,p)=>s+(p.x-mx)*(p.y-my),0);
+  const den = pts.reduce((s,p)=>s+(p.x-mx)*(p.x-mx),0);
+  return den ? num/den : 0;
+}
+
+function renderDailyTrend(rows) {
+  const cfg = dailyMetricConfig(ACTIVE_DAILY_TREND);
+  const data = rows.map((r,i)=>({day:r.day || i+1, date:r.date, value:cfg.value(r), filled:r.filled}));
+  const clean = data.filter(d=>d.value!==null && Number.isFinite(d.value));
+  const node = el("dailyTrendChart");
+  el("dailyTrendNote").textContent = cfg.note;
+
+  if (!clean.length) {
+    node.innerHTML = '<div class="chart-empty">Энэ metric дээр data хараахан байхгүй байна.</div>';
+    el("dailyAvg").textContent = "--"; el("dailyBest").textContent = "--"; el("dailyBad").textContent = "--"; el("dailyTrend").textContent = "--";
+    return;
+  }
+
+  const values = clean.map(d=>d.value);
+  const average = avg(values);
+  const isTimeMetric = ACTIVE_DAILY_TREND === "wake" || ACTIVE_DAILY_TREND === "bed";
+  const bestVal = isTimeMetric ? Math.min(...values) : Math.max(...values);
+  const badDays = clean.filter(d => isTimeMetric ? d.value >= cfg.bad : d.value < cfg.bad).length;
+  const slope = linearSlope(data.map(d=>d.value));
+  let trendText = "Flat";
+  if (isTimeMetric) {
+    if (slope < -1) trendText = "Improving";
+    else if (slope > 1) trendText = "Worse";
+  } else {
+    if (slope > .2) trendText = "Improving";
+    else if (slope < -.2) trendText = "Worse";
+  }
+
+  el("dailyAvg").textContent = cfg.format(average);
+  el("dailyBest").textContent = cfg.format(bestVal);
+  el("dailyBad").textContent = badDays;
+  el("dailyTrend").textContent = trendText;
+
+  const width = 1120, height = 280, padL = 46, padR = 20, padT = 26, padB = 34;
+  let min = cfg.min !== null && cfg.min !== undefined ? cfg.min : Math.min(...values, cfg.bad, cfg.target);
+  let max = cfg.max !== null && cfg.max !== undefined ? cfg.max : Math.max(...values, cfg.good, cfg.target);
+  if (!isTimeMetric) {
+    max = Math.max(max, cfg.good * 1.25, cfg.target * 1.25);
+    min = Math.min(min, 0);
+  }
+  if (min === max) max = min + 1;
+
+  const x = day => padL + ((day - 1) / Math.max(1, rows.length - 1)) * (width - padL - padR);
+  const y = v => height - padB - ((v - min) / (max - min)) * (height - padT - padB);
+
+  const points = clean.map(d=>`${x(d.day)},${y(d.value)}`).join(" ");
+  const avgY = y(average);
+  const targetY = y(cfg.target);
+  const badY = y(cfg.bad);
+  const goodY = y(cfg.good);
+
+  const goodBandTop = isTimeMetric ? padT : y(max);
+  const goodBandBottom = isTimeMetric ? y(cfg.good) : y(cfg.good);
+  const badBandTop = isTimeMetric ? y(cfg.bad) : y(cfg.bad);
+  const badBandBottom = isTimeMetric ? height-padB : height-padB;
+
+  const dots = clean.map(d=>{
+    const bad = isTimeMetric ? d.value >= cfg.bad : d.value < cfg.bad;
+    const fill = bad ? "#ef4444" : "#2563eb";
+    return `<circle cx="${x(d.day)}" cy="${y(d.value)}" r="3.4" fill="${fill}"><title>Day ${d.day} • ${d.date}: ${cfg.format(d.value)}</title></circle>`;
+  }).join("");
+
+  const yLabelMax = cfg.format(max);
+  const yLabelMin = cfg.format(min);
+
+  node.innerHTML = `
+    <svg class="daily-svg" viewBox="0 0 ${width} ${height}">
+      <rect x="${padL}" y="${goodBandTop}" width="${width-padL-padR}" height="${Math.max(0, goodBandBottom-goodBandTop)}" fill="rgba(34,197,94,.10)"></rect>
+      <rect x="${padL}" y="${badBandTop}" width="${width-padL-padR}" height="${Math.max(0, badBandBottom-badBandTop)}" fill="rgba(239,68,68,.09)"></rect>
+      <line x1="${padL}" y1="${height-padB}" x2="${width-padR}" y2="${height-padB}" stroke="#e5e7eb"/>
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height-padB}" stroke="#e5e7eb"/>
+      <line x1="${padL}" y1="${avgY}" x2="${width-padR}" y2="${avgY}" stroke="#0f172a" stroke-dasharray="4 5" stroke-width="1.5"/>
+      <line x1="${padL}" y1="${targetY}" x2="${width-padR}" y2="${targetY}" stroke="#2563eb" stroke-dasharray="6 5" stroke-width="1.5"/>
+      <line x1="${padL}" y1="${badY}" x2="${width-padR}" y2="${badY}" stroke="#ef4444" stroke-dasharray="6 5" stroke-width="1.5"/>
+      <line x1="${padL}" y1="${goodY}" x2="${width-padR}" y2="${goodY}" stroke="#22c55e" stroke-dasharray="6 5" stroke-width="1.5"/>
+      <polyline points="${points}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+      <text x="${padL}" y="${padT-8}" font-size="11" fill="#64748b">${yLabelMax}</text>
+      <text x="${padL}" y="${height-padB+20}" font-size="11" fill="#64748b">${yLabelMin}</text>
+      <text x="${width-padR}" y="${avgY-7}" text-anchor="end" font-size="11" fill="#0f172a">avg ${cfg.format(average)}</text>
+      <text x="${width-padR}" y="${targetY-7}" text-anchor="end" font-size="11" fill="#2563eb">target ${cfg.format(cfg.target)}</text>
+      <text x="${width-padR}" y="${badY+14}" text-anchor="end" font-size="11" fill="#ef4444">bad ${cfg.format(cfg.bad)}</text>
+      <text x="${width-padR}" y="${goodY-7}" text-anchor="end" font-size="11" fill="#16a34a">good ${cfg.format(cfg.good)}</text>
+      <text x="${padL}" y="${height-8}" font-size="11" fill="#64748b">Day 1</text>
+      <text x="${width-padR}" y="${height-8}" text-anchor="end" font-size="11" fill="#64748b">Day ${rows.length}</text>
+    </svg>`;
 }
 
 function weeklyStats(rows) {
@@ -594,6 +775,7 @@ function render(rows) {
   updateRing("ringCisa", avg(filled.map(r=>r.cisaScore)) || 0);
   updateRing("ringExercise", avg(filled.map(r=>r.exerciseScore)) || 0);
   renderHeatmap(rows);
+  renderDailyTrend(rows);
   renderWeekly(rows);
   renderTrendGraphics(rows);
   renderAlerts(rows);
