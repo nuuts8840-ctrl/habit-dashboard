@@ -88,6 +88,34 @@ th, td { padding:12px; border-bottom:1px solid var(--line); text-align:left; fon
 th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px; letter-spacing:.04em; }
 .risk-low { color:#15803d; font-weight:900; } .risk-med { color:#c2410c; font-weight:900; } .risk-high { color:#b91c1c; font-weight:900; }
 .footer-note { font-size:12px; color:var(--muted); margin-top:12px; line-height:1.5; }
+
+.chart-grid { grid-template-columns:repeat(2,1fr); }
+.chart-box { border:1px solid var(--line); border-radius:20px; padding:16px; background:#fff; }
+.chart-title { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; }
+.chart-title b { font-size:15px; }
+.chart-title span { color:var(--muted); font-size:12px; }
+.svg-chart { width:100%; height:220px; display:block; overflow:visible; }
+.chart-empty { padding:22px; color:var(--muted); background:#f8fafc; border-radius:16px; font-size:13px; }
+.risk-card { border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:10px; background:#fff; }
+.risk-card.critical { border-color:#fecaca; background:#fef2f2; }
+.risk-card.warning { border-color:#fed7aa; background:#fff7ed; }
+.risk-card.info { border-color:#bfdbfe; background:#eff6ff; }
+.risk-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:6px; }
+.risk-badge { font-size:11px; font-weight:950; letter-spacing:.04em; text-transform:uppercase; border-radius:999px; padding:4px 8px; white-space:nowrap; }
+.critical .risk-badge { background:#fee2e2; color:#b91c1c; }
+.warning .risk-badge { background:#ffedd5; color:#c2410c; }
+.info .risk-badge { background:#dbeafe; color:#1d4ed8; }
+.risk-title { font-weight:950; }
+.risk-body { color:#344054; font-size:13px; line-height:1.45; }
+.risk-action { margin-top:8px; font-size:13px; font-weight:850; color:#0f172a; }
+.spark-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+.spark-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:16px; box-shadow:var(--shadow2); }
+.spark-value { font-size:26px; font-weight:950; letter-spacing:-.04em; margin-top:6px; }
+.spark-label { color:var(--muted); font-size:12px; font-weight:800; }
+@media (max-width:960px) {
+  .chart-grid, .spark-row { grid-template-columns:1fr; }
+}
+
 @media (max-width:960px) {
   .hero,.kpis,.main,.mini-grid { grid-template-columns:1fr; }
   .heatmap { grid-template-columns:repeat(12, minmax(12px,1fr)); gap:6px; }
@@ -144,6 +172,24 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
       <div id="heatmapNote" class="footer-note">Overall score харуулж байна.</div>
     </div>
     <div class="card"><h2>Risk alerts</h2><div id="alerts"></div></div>
+  </section>
+
+
+  <section class="grid spark-row">
+    <div class="spark-card"><div class="spark-label">7-day avg CISA</div><div id="avgCisa7" class="spark-value">--</div><div class="sub">Target: 2h/day</div></div>
+    <div class="spark-card"><div class="spark-label">7-day avg exercise</div><div id="avgExercise7" class="spark-value">--</div><div class="sub">Target: 30m/day</div></div>
+    <div class="spark-card"><div class="spark-label">7-day avg score</div><div id="avgScore7" class="spark-value">--</div><div class="sub">Recent consistency</div></div>
+    <div class="spark-card"><div class="spark-label">This week risk</div><div id="weekRisk" class="spark-value">--</div><div class="sub">Missing + missed targets</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Trend graphics</h2>
+    <div class="grid chart-grid">
+      <div class="chart-box"><div class="chart-title"><b>📘 Weekly CISA study hours</b><span>Target line: 14h/week</span></div><div id="chartCisa"></div></div>
+      <div class="chart-box"><div class="chart-title"><b>🏃 Weekly exercise minutes</b><span>Target line: 210m/week</span></div><div id="chartExercise"></div></div>
+      <div class="chart-box"><div class="chart-title"><b>📈 Weekly average score</b><span>Overall habit score</span></div><div id="chartScore"></div></div>
+      <div class="chart-box"><div class="chart-title"><b>🌙 Sleep / wake trend</b><span>Wake-up + bedtime average</span></div><div id="chartSleep"></div></div>
+    </div>
   </section>
 
   <section class="card">
@@ -326,32 +372,197 @@ function renderWeekly(rows) {
     </tr>`;
   }).join("");
 }
-function renderAlerts(rows) {
-  const alerts = [];
-  const filled = rows.filter(r => r.filled);
-  const latest = filled[filled.length - 1] || rows[0];
 
-  if (!rows.length) alerts.push(["badalert", "CSV уншигдсан боловч мөр олдсонгүй. Header row болон publish setting шалгаарай."]);
+function weeklyStats(rows) {
+  const weeks = {};
+  rows.forEach(r => (weeks[r.week] ??= []).push(r));
+  return Object.keys(weeks).sort((a,b)=>a-b).map(w => {
+    const arr = weeks[w];
+    const f = arr.filter(r=>r.filled);
+    return {
+      week:Number(w), rows:arr, filled:f,
+      avgScore:f.length ? avg(f.map(r=>r.score)) : null,
+      cisa:f.reduce((s,r)=>s+r.cisa,0),
+      exercise:f.reduce((s,r)=>s+r.exercise,0),
+      avgWake:avg(f.map(r=>r.wakeMin)),
+      avgBed:avg(f.map(r=>r.bedAdj)),
+      wakeMissing:arr.filter(r=>!r.wake && r.date).length,
+      bedMissing:arr.filter(r=>!r.bed && r.date).length,
+      cisaMissing:arr.filter(r=>r.cisaRaw === "" && r.date).length,
+      exerciseMissing:arr.filter(r=>r.exerciseRaw === "" && r.date).length,
+      cisaZero:arr.filter(r=>r.cisaRaw !== "" && r.cisa <= 0).length,
+      exerciseZero:arr.filter(r=>r.exerciseRaw !== "" && r.exercise <= 0).length
+    };
+  });
+}
 
-  if (latest) {
-    if (!latest.wake) alerts.push(["warn", "🌅 Wake-up time хоосон байна. Боссон цагаа оруулаарай."]);
-    if (!latest.bed) alerts.push(["warn", "📵 Phone-free bedtime хоосон байна. Утасгүй унтсан цагаа оруулаарай."]);
-    if (latest.cisaRaw === "") alerts.push(["warn", "📘 CISA study hours хоосон байна. Суралцсан цагаа оруулаарай."]);
-    else if (latest.cisa <= 0) alerts.push(["badalert", "📘 CISA study 0 цаг байна. Minimum 30 минут хий."]);
-    if (latest.exerciseRaw === "") alerts.push(["warn", "🏃 Exercise minutes хоосон байна. Дасгалын минутаа оруулаарай."]);
-    else if (latest.exercise <= 0) alerts.push(["warn", "🏃 Exercise 0 минут байна. 10 минут ч байсан хий."]);
+function drawLineChart(containerId, series, options={}) {
+  const node = el(containerId);
+  const clean = series.filter(d => d.value !== null && Number.isFinite(d.value));
+  if (clean.length < 1) {
+    node.innerHTML = '<div class="chart-empty">Data хараахан хүрэлцэхгүй байна.</div>';
+    return;
   }
 
-  const last2 = filled.slice(-2);
-  const last3 = filled.slice(-3);
-  if (last2.length === 2 && last2.every(r => r.cisa <= 0)) alerts.push(["badalert", "🔥 2 өдөр дараалан CISA study 0 цаг байна."]);
-  if (last3.length === 3 && last3.every(r => r.exercise <= 0)) alerts.push(["warn", "🏃 3 өдөр дараалан дасгал 0 минут байна."]);
-  if (last2.length === 2 && last2.every(r => r.wakeMin !== null && r.wakeMin > timeToMinutes("08:00"))) alerts.push(["warn", "🌅 2 өдөр дараалан 08:00-с хойш босож байна."]);
-  if (last2.length === 2 && last2.every(r => r.bedAdj !== null && r.bedAdj > (timeToMinutes("00:00") + 1440))) alerts.push(["warn", "🌙 2 өдөр дараалан 00:00-с хойш унтсан байна."]);
+  const width = 560, height = 220, pad = 36;
+  const values = clean.map(d=>d.value);
+  if (options.target !== undefined) values.push(options.target);
+  let min = options.min !== undefined ? options.min : Math.min(...values);
+  let max = options.max !== undefined ? options.max : Math.max(...values);
+  if (min === max) { min = Math.max(0, min - 1); max = max + 1; }
+  const x = i => pad + (clean.length === 1 ? 0 : i * (width - pad*2) / (clean.length - 1));
+  const y = v => height - pad - ((v - min) / (max - min)) * (height - pad*2);
+  const pts = clean.map((d,i)=>`${x(i)},${y(d.value)}`).join(" ");
+  const area = `${pad},${height-pad} ${pts} ${x(clean.length-1)},${height-pad}`;
+  const last = clean[clean.length-1];
 
-  if (!alerts.length) alerts.push(["", "✅ Одоогоор том risk alert алга. Consistency сайн байна."]);
-  el("alerts").innerHTML = alerts.map(a => `<div class="alert ${a[0]}">${a[1]}</div>`).join("");
+  let targetLine = "";
+  if (options.target !== undefined) {
+    const ty = y(options.target);
+    targetLine = `<line x1="${pad}" y1="${ty}" x2="${width-pad}" y2="${ty}" stroke="#94a3b8" stroke-dasharray="5 5" stroke-width="1.4"/>
+      <text x="${width-pad}" y="${ty-6}" text-anchor="end" font-size="11" fill="#64748b">target ${options.target}${options.unit||""}</text>`;
+  }
+
+  node.innerHTML = `
+    <svg class="svg-chart" viewBox="0 0 ${width} ${height}">
+      <line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="#e5e7eb"/>
+      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" stroke="#e5e7eb"/>
+      ${targetLine}
+      <polygon points="${area}" fill="rgba(37,99,235,.10)"></polygon>
+      <polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      ${clean.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.value)}" r="4.4" fill="#2563eb"><title>Week ${d.label}: ${Math.round(d.value*10)/10}${options.unit||""}</title></circle>`).join("")}
+      <text x="${pad}" y="${pad-10}" font-size="11" fill="#64748b">${Math.round(max*10)/10}${options.unit||""}</text>
+      <text x="${pad}" y="${height-pad+18}" font-size="11" fill="#64748b">${Math.round(min*10)/10}${options.unit||""}</text>
+      <text x="${width-pad}" y="${height-pad+18}" text-anchor="end" font-size="11" fill="#64748b">W${last.label}</text>
+    </svg>`;
 }
+
+function drawSleepChart(stats) {
+  const node = el("chartSleep");
+  const data = stats.filter(s => s.filled.length).map(s => ({
+    label:s.week, wake:s.avgWake, bed:s.avgBed
+  }));
+  if (!data.length) {
+    node.innerHTML = '<div class="chart-empty">Wake / bedtime data хараахан алга.</div>';
+    return;
+  }
+  const width=560, height=220, pad=36;
+  const norm = v => v === null ? null : (v < 12*60 ? v + 1440 : v);
+  const vals = data.flatMap(d => [norm(d.wake), norm(d.bed)]).filter(v=>v!==null&&Number.isFinite(v));
+  let min = Math.min(...vals, timeToMinutes("06:00"));
+  let max = Math.max(...vals, timeToMinutes("01:00")+1440);
+  if (min === max) max += 60;
+  const x = i => pad + (data.length === 1 ? 0 : i * (width-pad*2)/(data.length-1));
+  const y = v => height-pad - ((norm(v)-min)/(max-min))*(height-pad*2);
+  const wakePts = data.map((d,i)=>d.wake===null?null:`${x(i)},${y(d.wake)}`).filter(Boolean).join(" ");
+  const bedPts = data.map((d,i)=>d.bed===null?null:`${x(i)},${y(d.bed)}`).filter(Boolean).join(" ");
+  const wakeTargetY = y(timeToMinutes(TARGET.wake));
+  const bedTargetY = y(timeToMinutes(TARGET.bed));
+  node.innerHTML = `
+    <svg class="svg-chart" viewBox="0 0 ${width} ${height}">
+      <line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="#e5e7eb"/>
+      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" stroke="#e5e7eb"/>
+      <line x1="${pad}" y1="${wakeTargetY}" x2="${width-pad}" y2="${wakeTargetY}" stroke="#60a5fa" stroke-dasharray="5 5"/>
+      <line x1="${pad}" y1="${bedTargetY}" x2="${width-pad}" y2="${bedTargetY}" stroke="#22c55e" stroke-dasharray="5 5"/>
+      <polyline points="${wakePts}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="${bedPts}" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="${pad}" y="${pad-10}" font-size="11" fill="#64748b">Wake blue / Bed green</text>
+      <text x="${width-pad}" y="${wakeTargetY-6}" text-anchor="end" font-size="11" fill="#2563eb">wake ${TARGET.wake}</text>
+      <text x="${width-pad}" y="${bedTargetY-6}" text-anchor="end" font-size="11" fill="#16a34a">bed ${TARGET.bed}</text>
+    </svg>`;
+}
+
+function renderTrendGraphics(rows) {
+  const stats = weeklyStats(rows).filter(s => s.filled.length);
+  drawLineChart("chartCisa", stats.map(s=>({label:s.week,value:s.cisa})), {target:14, unit:"h", min:0});
+  drawLineChart("chartExercise", stats.map(s=>({label:s.week,value:s.exercise})), {target:210, unit:"m", min:0});
+  drawLineChart("chartScore", stats.map(s=>({label:s.week,value:s.avgScore})), {target:70, unit:"%", min:0, max:100});
+  drawSleepChart(stats);
+
+  const filled = rows.filter(r=>r.filled);
+  const last7 = filled.slice(-7);
+  const avgCisa = last7.length ? avg(last7.map(r=>r.cisa)) : null;
+  const avgEx = last7.length ? avg(last7.map(r=>r.exercise)) : null;
+  const avgScore = last7.length ? avg(last7.map(r=>r.score)) : null;
+  el("avgCisa7").textContent = avgCisa === null ? "--" : avgCisa.toFixed(1) + "h";
+  el("avgExercise7").textContent = avgEx === null ? "--" : Math.round(avgEx) + "m";
+  el("avgScore7").textContent = avgScore === null ? "--" : Math.round(avgScore) + "%";
+
+  const currentWeek = stats[stats.length-1];
+  if (!currentWeek) el("weekRisk").textContent = "--";
+  else {
+    const riskScore =
+      currentWeek.wakeMissing + currentWeek.bedMissing + currentWeek.cisaMissing + currentWeek.exerciseMissing +
+      currentWeek.cisaZero + currentWeek.exerciseZero +
+      (currentWeek.cisa < 7 ? 2 : 0) +
+      (currentWeek.avgScore !== null && currentWeek.avgScore < 50 ? 2 : 0);
+    el("weekRisk").textContent = riskScore >= 5 ? "High" : riskScore >= 2 ? "Medium" : "Low";
+  }
+}
+
+function addRisk(list, level, title, body, action) {
+  list.push({level,title,body,action});
+}
+
+function renderAlerts(rows) {
+  const risks = [];
+  const filled = rows.filter(r => r.filled);
+  const latest = filled[filled.length - 1] || rows[0];
+  const last7 = filled.slice(-7);
+  const last3 = filled.slice(-3);
+  const prev3 = filled.slice(-6,-3);
+
+  if (!rows.length) {
+    addRisk(risks,"critical","CSV уншигдсан ч мөр олдсонгүй","Header row болон publish setting шалгах хэрэгтэй.","Google Sheets → Publish to web → Daily Input CSV link-ээ шинэчил.");
+  }
+
+  if (latest) {
+    const missing = [];
+    if (!latest.wake) missing.push("wake-up time");
+    if (!latest.bed) missing.push("phone-free bedtime");
+    if (latest.cisaRaw === "") missing.push("CISA hours");
+    if (latest.exerciseRaw === "") missing.push("exercise minutes");
+    if (missing.length) addRisk(risks,"warning","Сүүлийн бөглөсөн мөр дутуу байна",`${missing.join(", ")} хоосон байна.`,"Өнөөдрийн 4 талбарыг бүгдийг нь бөглө. Энэ нь score ба trend-ийг зөв болгоно.");
+    if (latest.cisaRaw !== "" && latest.cisa < 0.5) addRisk(risks,"critical","CISA study хэт бага байна",`Сүүлийн мөр дээр CISA ${latest.cisa} цаг байна.`,"Одоо шууд 30 минут Manual эсвэл practice question хий.");
+    if (latest.exerciseRaw !== "" && latest.exercise < 10) addRisk(risks,"warning","Exercise habit тасрах эрсдэлтэй",`Сүүлийн мөр дээр exercise ${latest.exercise} минут байна.`,"10 минут алхалт эсвэл mobility хийж habit chain-ээ таслахгүй байлга.");
+  }
+
+  if (last7.length) {
+    const avgCisa = avg(last7.map(r=>r.cisa)) || 0;
+    const avgEx = avg(last7.map(r=>r.exercise)) || 0;
+    const avgScore = avg(last7.map(r=>r.score)) || 0;
+    if (avgCisa < 1) addRisk(risks,"critical","7-day CISA average target-аас хол байна",`Сүүлийн ${last7.length} бөглөсөн өдрийн дундаж CISA ${avgCisa.toFixed(1)}h/day байна.`,"Маргаашаас 2h/day биш, эхлээд 60+60 минут гэж 2 блок болго.");
+    else if (avgCisa < 2) addRisk(risks,"warning","CISA average target хүрэхгүй байна",`7-day avg ${avgCisa.toFixed(1)}h/day. Target 2h/day.`,"Өдөр бүр minimum 90 минут + weekend нөхөх блок төлөвлө.");
+    if (avgEx < 15) addRisk(risks,"warning","Exercise average сул байна",`7-day avg ${Math.round(avgEx)}m/day. Target 30m/day.`,"Сагсны өмнө/дараа 10 минутын routine оруул.");
+    if (avgScore < 50) addRisk(risks,"critical","Overall consistency унаж байна",`7-day avg score ${Math.round(avgScore)}%.`,"Өнөөдөр бүх habit-ийг minimum түвшинд ч болов бөглө: wake, bed, CISA 30m, exercise 10m.");
+  }
+
+  if (last3.length === 3) {
+    if (last3.every(r=>r.cisa <= 0)) addRisk(risks,"critical","3 өдөр дараалан CISA 0 цаг","Study chain тасарсан байна.","Өнөөдөр 30 минут question review хий. Төгс хийх гэж бүү хүлээ.");
+    if (last3.every(r=>r.exercise <= 0)) addRisk(risks,"warning","3 өдөр дараалан exercise 0 минут","Биеийн energy routine алдагдаж байна.","10 минут гадаа алхах эсвэл stretch хий.");
+    if (last3.every(r=>r.wakeMin !== null && r.wakeMin > timeToMinutes("08:00"))) addRisk(risks,"warning","3 өдөр дараалан 08:00-с хойш босож байна","Өглөөний rhythm алдагдаж байна.","Орой утсаа орноос хол тавьж, alarm-аа 15 минут эрт болго.");
+    if (last3.every(r=>r.bedAdj !== null && r.bedAdj > timeToMinutes("00:00")+1440)) addRisk(risks,"warning","3 өдөр дараалан 00:00-с хойш унтаж байна","23:00 target-аас холдож байна.","Өнөөдөр 22:30-аас phone-free mode эхлүүл.");
+  }
+
+  if (last3.length === 3 && prev3.length === 3) {
+    const a = avg(last3.map(r=>r.score)) || 0;
+    const b = avg(prev3.map(r=>r.score)) || 0;
+    if (b - a >= 15) addRisk(risks,"warning","Trend буурч байна",`Сүүлийн 3 өдрийн score өмнөх 3 өдрөөс ${Math.round(b-a)} point-оор буурсан.`,"Маргааш score өсгөх хамгийн амар 2 зүйл: CISA 30m + exercise 10m.");
+  }
+
+  if (!risks.length) addRisk(risks,"info","✅ Одоогоор том risk alert алга","Consistency сайн байна.","Одоо target-аа хадгалж, streak-ээ үргэлжлүүл.");
+
+  const rank = {critical:0, warning:1, info:2};
+  risks.sort((a,b)=>rank[a.level]-rank[b.level]);
+  el("alerts").innerHTML = risks.slice(0,6).map(r => `
+    <div class="risk-card ${r.level}">
+      <div class="risk-top"><div class="risk-title">${r.title}</div><div class="risk-badge">${r.level}</div></div>
+      <div class="risk-body">${r.body}</div>
+      <div class="risk-action">Next action: ${r.action}</div>
+    </div>
+  `).join("");
+}
+
 function render(rows) {
   ALL_ROWS = rows;
   const filled = rows.filter(r => r.filled);
@@ -384,6 +595,7 @@ function render(rows) {
   updateRing("ringExercise", avg(filled.map(r=>r.exerciseScore)) || 0);
   renderHeatmap(rows);
   renderWeekly(rows);
+  renderTrendGraphics(rows);
   renderAlerts(rows);
 }
 function setFilter(name) {
