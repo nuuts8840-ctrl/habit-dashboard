@@ -126,6 +126,34 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
 .insight .n { font-size:22px; font-weight:950; letter-spacing:-.04em; margin-top:4px; }
 .daily-svg { width:100%; height:280px; display:block; overflow:visible; }
 .band-label { font-size:11px; fill:#64748b; }
+
+/* v5 analysis graphics */
+.analysis-grid { grid-template-columns:1.15fr .85fr; }
+.analysis-card { border:1px solid var(--line); border-radius:20px; padding:16px; background:#fff; }
+.analysis-title { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
+.analysis-title b { font-size:15px; }
+.analysis-title span { color:var(--muted); font-size:12px; }
+.chart-legend { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 10px; color:#475467; font-size:12px; }
+.legend-dot { width:10px; height:10px; border-radius:999px; display:inline-block; margin-right:5px; vertical-align:-1px; }
+.analysis-svg { width:100%; height:250px; display:block; overflow:visible; }
+.balance-list { display:grid; gap:10px; }
+.balance-row { border:1px solid var(--line); border-radius:16px; padding:12px; background:#fff; }
+.balance-head { display:flex; justify-content:space-between; gap:10px; font-weight:900; margin-bottom:8px; }
+.balance-track { height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+.balance-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,#60a5fa,#22c55e); }
+.dist-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.dist-box { border-radius:16px; padding:12px; border:1px solid var(--line); background:#fff; }
+.dist-box .big { font-size:24px; font-weight:950; letter-spacing:-.04em; }
+.daily-chart-header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
+.daily-chart-meta { color:var(--muted); font-size:12px; line-height:1.45; text-align:right; }
+.daily-svg { height:300px; }
+@media (max-width:960px) {
+  .analysis-grid { grid-template-columns:1fr; }
+  .dist-grid { grid-template-columns:1fr 1fr; }
+  .daily-chart-meta { text-align:left; }
+  .daily-chart-header { flex-direction:column; }
+}
+
 @media (max-width:960px) {
   .chart-insights { grid-template-columns:1fr 1fr; }
 }
@@ -221,13 +249,56 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
     <div class="spark-card"><div class="spark-label">This week risk</div><div id="weekRisk" class="spark-value">--</div><div class="sub">Missing + missed targets</div></div>
   </section>
 
+
   <section class="card">
-    <h2>Trend graphics</h2>
-    <div class="grid chart-grid">
-      <div class="chart-box"><div class="chart-title"><b>📘 Weekly CISA study hours</b><span>Target line: 14h/week</span></div><div id="chartCisa"></div></div>
-      <div class="chart-box"><div class="chart-title"><b>🏃 Weekly exercise minutes</b><span>Target line: 210m/week</span></div><div id="chartExercise"></div></div>
-      <div class="chart-box"><div class="chart-title"><b>📈 Weekly average score</b><span>Overall habit score</span></div><div id="chartScore"></div></div>
-      <div class="chart-box"><div class="chart-title"><b>🌙 Sleep / wake trend</b><span>Wake-up + bedtime average</span></div><div id="chartSleep"></div></div>
+    <h2>Analysis graphics</h2>
+    <p class="muted" style="margin-bottom:12px">Зүгээр trend харахаас илүү: target-аас хоцорч байна уу, сүүлийн 7 хоног сайжирч байна уу, аль habit хамгийн их risk үүсгэж байна гэдгийг харуулна.</p>
+
+    <div class="grid analysis-grid">
+      <div class="analysis-card">
+        <div class="analysis-title">
+          <b>📘 Cumulative CISA progress vs target</b>
+          <span>Actual total hours vs planned 2h/day</span>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot" style="background:#2563eb"></i>Actual</span>
+          <span><i class="legend-dot" style="background:#94a3b8"></i>Target</span>
+          <span><i class="legend-dot" style="background:#22c55e"></i>Ahead zone</span>
+          <span><i class="legend-dot" style="background:#ef4444"></i>Behind zone</span>
+        </div>
+        <div id="chartCumulative"></div>
+      </div>
+
+      <div class="analysis-card">
+        <div class="analysis-title">
+          <b>⚖️ Habit balance</b>
+          <span>Average score by habit</span>
+        </div>
+        <div id="habitBalance" class="balance-list"></div>
+      </div>
+    </div>
+
+    <div class="grid analysis-grid" style="margin-top:16px">
+      <div class="analysis-card">
+        <div class="analysis-title">
+          <b>📈 Rolling 7-day average score</b>
+          <span>Smooth trend / consistency direction</span>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot" style="background:#2563eb"></i>Rolling avg</span>
+          <span><i class="legend-dot" style="background:#22c55e"></i>Good line 70%</span>
+          <span><i class="legend-dot" style="background:#ef4444"></i>Bad line 50%</span>
+        </div>
+        <div id="chartRolling"></div>
+      </div>
+
+      <div class="analysis-card">
+        <div class="analysis-title">
+          <b>🧩 Day quality distribution</b>
+          <span>Bad / weak / good / excellent day mix</span>
+        </div>
+        <div id="qualityDistribution" class="dist-grid"></div>
+      </div>
     </div>
   </section>
 
@@ -466,6 +537,7 @@ function linearSlope(values) {
   return den ? num/den : 0;
 }
 
+
 function renderDailyTrend(rows) {
   const cfg = dailyMetricConfig(ACTIVE_DAILY_TREND);
   const data = rows.map((r,i)=>({day:r.day || i+1, date:r.date, value:cfg.value(r), filled:r.filled}));
@@ -499,60 +571,59 @@ function renderDailyTrend(rows) {
   el("dailyBad").textContent = badDays;
   el("dailyTrend").textContent = trendText;
 
-  const width = 1120, height = 280, padL = 46, padR = 20, padT = 26, padB = 34;
+  const width = 1120, height = 300, padL = 52, padR = 28, padT = 30, padB = 42;
   let min = cfg.min !== null && cfg.min !== undefined ? cfg.min : Math.min(...values, cfg.bad, cfg.target);
   let max = cfg.max !== null && cfg.max !== undefined ? cfg.max : Math.max(...values, cfg.good, cfg.target);
-  if (!isTimeMetric) {
-    max = Math.max(max, cfg.good * 1.25, cfg.target * 1.25);
-    min = Math.min(min, 0);
-  }
+  if (!isTimeMetric) { max = Math.max(max, cfg.good * 1.25, cfg.target * 1.25); min = Math.min(min, 0); }
   if (min === max) max = min + 1;
 
   const x = day => padL + ((day - 1) / Math.max(1, rows.length - 1)) * (width - padL - padR);
   const y = v => height - padB - ((v - min) / (max - min)) * (height - padT - padB);
-
   const points = clean.map(d=>`${x(d.day)},${y(d.value)}`).join(" ");
-  const avgY = y(average);
-  const targetY = y(cfg.target);
-  const badY = y(cfg.bad);
-  const goodY = y(cfg.good);
 
+  const avgY = y(average), targetY = y(cfg.target), badY = y(cfg.bad), goodY = y(cfg.good);
   const goodBandTop = isTimeMetric ? padT : y(max);
   const goodBandBottom = isTimeMetric ? y(cfg.good) : y(cfg.good);
   const badBandTop = isTimeMetric ? y(cfg.bad) : y(cfg.bad);
-  const badBandBottom = isTimeMetric ? height-padB : height-padB;
+  const badBandBottom = height-padB;
 
   const dots = clean.map(d=>{
     const bad = isTimeMetric ? d.value >= cfg.bad : d.value < cfg.bad;
     const fill = bad ? "#ef4444" : "#2563eb";
-    return `<circle cx="${x(d.day)}" cy="${y(d.value)}" r="3.4" fill="${fill}"><title>Day ${d.day} • ${d.date}: ${cfg.format(d.value)}</title></circle>`;
+    return `<circle cx="${x(d.day)}" cy="${y(d.value)}" r="3.1" fill="${fill}"><title>Day ${d.day} • ${d.date}: ${cfg.format(d.value)}</title></circle>`;
   }).join("");
 
-  const yLabelMax = cfg.format(max);
-  const yLabelMin = cfg.format(min);
-
   node.innerHTML = `
+    <div class="daily-chart-header">
+      <div class="chart-legend">
+        <span><i class="legend-dot" style="background:#2563eb"></i>Daily value</span>
+        <span><i class="legend-dot" style="background:#0f172a"></i>Average</span>
+        <span><i class="legend-dot" style="background:#22c55e"></i>Good</span>
+        <span><i class="legend-dot" style="background:#ef4444"></i>Bad</span>
+      </div>
+      <div class="daily-chart-meta">
+        Avg: <b>${cfg.format(average)}</b> • Target: <b>${cfg.format(cfg.target)}</b><br>
+        Good: <b>${cfg.format(cfg.good)}</b> • Bad: <b>${cfg.format(cfg.bad)}</b>
+      </div>
+    </div>
     <svg class="daily-svg" viewBox="0 0 ${width} ${height}">
-      <rect x="${padL}" y="${goodBandTop}" width="${width-padL-padR}" height="${Math.max(0, goodBandBottom-goodBandTop)}" fill="rgba(34,197,94,.10)"></rect>
-      <rect x="${padL}" y="${badBandTop}" width="${width-padL-padR}" height="${Math.max(0, badBandBottom-badBandTop)}" fill="rgba(239,68,68,.09)"></rect>
+      <rect x="${padL}" y="${goodBandTop}" width="${width-padL-padR}" height="${Math.max(0, goodBandBottom-goodBandTop)}" fill="rgba(34,197,94,.09)"></rect>
+      <rect x="${padL}" y="${badBandTop}" width="${width-padL-padR}" height="${Math.max(0, badBandBottom-badBandTop)}" fill="rgba(239,68,68,.08)"></rect>
       <line x1="${padL}" y1="${height-padB}" x2="${width-padR}" y2="${height-padB}" stroke="#e5e7eb"/>
       <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height-padB}" stroke="#e5e7eb"/>
-      <line x1="${padL}" y1="${avgY}" x2="${width-padR}" y2="${avgY}" stroke="#0f172a" stroke-dasharray="4 5" stroke-width="1.5"/>
-      <line x1="${padL}" y1="${targetY}" x2="${width-padR}" y2="${targetY}" stroke="#2563eb" stroke-dasharray="6 5" stroke-width="1.5"/>
-      <line x1="${padL}" y1="${badY}" x2="${width-padR}" y2="${badY}" stroke="#ef4444" stroke-dasharray="6 5" stroke-width="1.5"/>
-      <line x1="${padL}" y1="${goodY}" x2="${width-padR}" y2="${goodY}" stroke="#22c55e" stroke-dasharray="6 5" stroke-width="1.5"/>
+      <line x1="${padL}" y1="${avgY}" x2="${width-padR}" y2="${avgY}" stroke="#0f172a" stroke-dasharray="4 5" stroke-width="1.4"/>
+      <line x1="${padL}" y1="${targetY}" x2="${width-padR}" y2="${targetY}" stroke="#2563eb" stroke-dasharray="6 5" stroke-width="1.3"/>
+      <line x1="${padL}" y1="${badY}" x2="${width-padR}" y2="${badY}" stroke="#ef4444" stroke-dasharray="6 5" stroke-width="1.3"/>
+      <line x1="${padL}" y1="${goodY}" x2="${width-padR}" y2="${goodY}" stroke="#22c55e" stroke-dasharray="6 5" stroke-width="1.3"/>
       <polyline points="${points}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       ${dots}
-      <text x="${padL}" y="${padT-8}" font-size="11" fill="#64748b">${yLabelMax}</text>
-      <text x="${padL}" y="${height-padB+20}" font-size="11" fill="#64748b">${yLabelMin}</text>
-      <text x="${width-padR}" y="${avgY-7}" text-anchor="end" font-size="11" fill="#0f172a">avg ${cfg.format(average)}</text>
-      <text x="${width-padR}" y="${targetY-7}" text-anchor="end" font-size="11" fill="#2563eb">target ${cfg.format(cfg.target)}</text>
-      <text x="${width-padR}" y="${badY+14}" text-anchor="end" font-size="11" fill="#ef4444">bad ${cfg.format(cfg.bad)}</text>
-      <text x="${width-padR}" y="${goodY-7}" text-anchor="end" font-size="11" fill="#16a34a">good ${cfg.format(cfg.good)}</text>
-      <text x="${padL}" y="${height-8}" font-size="11" fill="#64748b">Day 1</text>
-      <text x="${width-padR}" y="${height-8}" text-anchor="end" font-size="11" fill="#64748b">Day ${rows.length}</text>
+      <text x="${padL}" y="${padT-8}" font-size="11" fill="#64748b">${cfg.format(max)}</text>
+      <text x="${padL}" y="${height-padB+20}" font-size="11" fill="#64748b">${cfg.format(min)}</text>
+      <text x="${padL}" y="${height-10}" font-size="11" fill="#64748b">Day 1</text>
+      <text x="${width-padR}" y="${height-10}" text-anchor="end" font-size="11" fill="#64748b">Day ${rows.length}</text>
     </svg>`;
 }
+
 
 function weeklyStats(rows) {
   const weeks = {};
@@ -577,109 +648,127 @@ function weeklyStats(rows) {
   });
 }
 
-function drawLineChart(containerId, series, options={}) {
+
+function drawAnalysisLine(containerId, series, options={}) {
   const node = el(containerId);
   const clean = series.filter(d => d.value !== null && Number.isFinite(d.value));
-  if (clean.length < 1) {
+  if (!clean.length) {
     node.innerHTML = '<div class="chart-empty">Data хараахан хүрэлцэхгүй байна.</div>';
     return;
   }
 
-  const width = 560, height = 220, pad = 36;
+  const width = 760, height = 250, padL = 44, padR = 22, padT = 24, padB = 34;
   const values = clean.map(d=>d.value);
-  if (options.target !== undefined) values.push(options.target);
+  if (options.targetSeries) values.push(...options.targetSeries.map(d=>d.value));
+  if (options.lines) values.push(...options.lines.map(l=>l.value));
   let min = options.min !== undefined ? options.min : Math.min(...values);
   let max = options.max !== undefined ? options.max : Math.max(...values);
-  if (min === max) { min = Math.max(0, min - 1); max = max + 1; }
-  const x = i => pad + (clean.length === 1 ? 0 : i * (width - pad*2) / (clean.length - 1));
-  const y = v => height - pad - ((v - min) / (max - min)) * (height - pad*2);
+  if (min === max) max = min + 1;
+
+  const x = i => padL + (clean.length === 1 ? 0 : i * (width-padL-padR)/(clean.length-1));
+  const y = v => height-padB - ((v-min)/(max-min))*(height-padT-padB);
   const pts = clean.map((d,i)=>`${x(i)},${y(d.value)}`).join(" ");
-  const area = `${pad},${height-pad} ${pts} ${x(clean.length-1)},${height-pad}`;
-  const last = clean[clean.length-1];
 
-  let targetLine = "";
-  if (options.target !== undefined) {
-    const ty = y(options.target);
-    targetLine = `<line x1="${pad}" y1="${ty}" x2="${width-pad}" y2="${ty}" stroke="#94a3b8" stroke-dasharray="5 5" stroke-width="1.4"/>
-      <text x="${width-pad}" y="${ty-6}" text-anchor="end" font-size="11" fill="#64748b">target ${options.target}${options.unit||""}</text>`;
+  let targetPath = "";
+  if (options.targetSeries) {
+    const tClean = options.targetSeries.filter(d=>d.value!==null&&Number.isFinite(d.value));
+    const tPts = tClean.map((d,i)=>`${x(i)},${y(d.value)}`).join(" ");
+    targetPath = `<polyline points="${tPts}" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6" stroke-linecap="round"/>`;
   }
 
+  const lines = (options.lines||[]).map(l => {
+    const yy = y(l.value);
+    return `<line x1="${padL}" y1="${yy}" x2="${width-padR}" y2="${yy}" stroke="${l.color}" stroke-dasharray="6 6" stroke-width="1.5"/>`;
+  }).join("");
+
   node.innerHTML = `
-    <svg class="svg-chart" viewBox="0 0 ${width} ${height}">
-      <line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="#e5e7eb"/>
-      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" stroke="#e5e7eb"/>
-      ${targetLine}
-      <polygon points="${area}" fill="rgba(37,99,235,.10)"></polygon>
-      <polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
-      ${clean.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.value)}" r="4.4" fill="#2563eb"><title>Week ${d.label}: ${Math.round(d.value*10)/10}${options.unit||""}</title></circle>`).join("")}
-      <text x="${pad}" y="${pad-10}" font-size="11" fill="#64748b">${Math.round(max*10)/10}${options.unit||""}</text>
-      <text x="${pad}" y="${height-pad+18}" font-size="11" fill="#64748b">${Math.round(min*10)/10}${options.unit||""}</text>
-      <text x="${width-pad}" y="${height-pad+18}" text-anchor="end" font-size="11" fill="#64748b">W${last.label}</text>
+    <svg class="analysis-svg" viewBox="0 0 ${width} ${height}">
+      <line x1="${padL}" y1="${height-padB}" x2="${width-padR}" y2="${height-padB}" stroke="#e5e7eb"/>
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height-padB}" stroke="#e5e7eb"/>
+      ${lines}
+      ${targetPath}
+      <polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${clean.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.value)}" r="3.2" fill="#2563eb"><title>${d.label}: ${Math.round(d.value*10)/10}${options.unit||""}</title></circle>`).join("")}
+      <text x="${padL}" y="${padT-8}" font-size="11" fill="#64748b">${Math.round(max*10)/10}${options.unit||""}</text>
+      <text x="${padL}" y="${height-padB+20}" font-size="11" fill="#64748b">${Math.round(min*10)/10}${options.unit||""}</text>
+      <text x="${padL}" y="${height-7}" font-size="11" fill="#64748b">${clean[0].label}</text>
+      <text x="${width-padR}" y="${height-7}" text-anchor="end" font-size="11" fill="#64748b">${clean[clean.length-1].label}</text>
     </svg>`;
 }
 
-function drawSleepChart(stats) {
-  const node = el("chartSleep");
-  const data = stats.filter(s => s.filled.length).map(s => ({
-    label:s.week, wake:s.avgWake, bed:s.avgBed
-  }));
-  if (!data.length) {
-    node.innerHTML = '<div class="chart-empty">Wake / bedtime data хараахан алга.</div>';
-    return;
-  }
-  const width=560, height=220, pad=36;
-  const norm = v => v === null ? null : (v < 12*60 ? v + 1440 : v);
-  const vals = data.flatMap(d => [norm(d.wake), norm(d.bed)]).filter(v=>v!==null&&Number.isFinite(v));
-  let min = Math.min(...vals, timeToMinutes("06:00"));
-  let max = Math.max(...vals, timeToMinutes("01:00")+1440);
-  if (min === max) max += 60;
-  const x = i => pad + (data.length === 1 ? 0 : i * (width-pad*2)/(data.length-1));
-  const y = v => height-pad - ((norm(v)-min)/(max-min))*(height-pad*2);
-  const wakePts = data.map((d,i)=>d.wake===null?null:`${x(i)},${y(d.wake)}`).filter(Boolean).join(" ");
-  const bedPts = data.map((d,i)=>d.bed===null?null:`${x(i)},${y(d.bed)}`).filter(Boolean).join(" ");
-  const wakeTargetY = y(timeToMinutes(TARGET.wake));
-  const bedTargetY = y(timeToMinutes(TARGET.bed));
-  node.innerHTML = `
-    <svg class="svg-chart" viewBox="0 0 ${width} ${height}">
-      <line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="#e5e7eb"/>
-      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" stroke="#e5e7eb"/>
-      <line x1="${pad}" y1="${wakeTargetY}" x2="${width-pad}" y2="${wakeTargetY}" stroke="#60a5fa" stroke-dasharray="5 5"/>
-      <line x1="${pad}" y1="${bedTargetY}" x2="${width-pad}" y2="${bedTargetY}" stroke="#22c55e" stroke-dasharray="5 5"/>
-      <polyline points="${wakePts}" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <polyline points="${bedPts}" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="${pad}" y="${pad-10}" font-size="11" fill="#64748b">Wake blue / Bed green</text>
-      <text x="${width-pad}" y="${wakeTargetY-6}" text-anchor="end" font-size="11" fill="#2563eb">wake ${TARGET.wake}</text>
-      <text x="${width-pad}" y="${bedTargetY-6}" text-anchor="end" font-size="11" fill="#16a34a">bed ${TARGET.bed}</text>
-    </svg>`;
+function rollingAverage(values, windowSize=7) {
+  return values.map((d,i) => {
+    const slice = values.slice(Math.max(0,i-windowSize+1), i+1).filter(x=>x.value!==null&&Number.isFinite(x.value));
+    return { label:d.label, value:slice.length ? avg(slice.map(x=>x.value)) : null };
+  });
 }
 
-function renderTrendGraphics(rows) {
-  const stats = weeklyStats(rows).filter(s => s.filled.length);
-  drawLineChart("chartCisa", stats.map(s=>({label:s.week,value:s.cisa})), {target:14, unit:"h", min:0});
-  drawLineChart("chartExercise", stats.map(s=>({label:s.week,value:s.exercise})), {target:210, unit:"m", min:0});
-  drawLineChart("chartScore", stats.map(s=>({label:s.week,value:s.avgScore})), {target:70, unit:"%", min:0, max:100});
-  drawSleepChart(stats);
-
+function renderAnalysisGraphics(rows) {
   const filled = rows.filter(r=>r.filled);
-  const last7 = filled.slice(-7);
-  const avgCisa = last7.length ? avg(last7.map(r=>r.cisa)) : null;
-  const avgEx = last7.length ? avg(last7.map(r=>r.exercise)) : null;
-  const avgScore = last7.length ? avg(last7.map(r=>r.score)) : null;
-  el("avgCisa7").textContent = avgCisa === null ? "--" : avgCisa.toFixed(1) + "h";
-  el("avgExercise7").textContent = avgEx === null ? "--" : Math.round(avgEx) + "m";
-  el("avgScore7").textContent = avgScore === null ? "--" : Math.round(avgScore) + "%";
 
-  const currentWeek = stats[stats.length-1];
-  if (!currentWeek) el("weekRisk").textContent = "--";
-  else {
-    const riskScore =
-      currentWeek.wakeMissing + currentWeek.bedMissing + currentWeek.cisaMissing + currentWeek.exerciseMissing +
-      currentWeek.cisaZero + currentWeek.exerciseZero +
-      (currentWeek.cisa < 7 ? 2 : 0) +
-      (currentWeek.avgScore !== null && currentWeek.avgScore < 50 ? 2 : 0);
-    el("weekRisk").textContent = riskScore >= 5 ? "High" : riskScore >= 2 ? "Medium" : "Low";
-  }
+  const cumulative = [];
+  const target = [];
+  let cisaSum = 0;
+  rows.forEach((r,i) => {
+    if (r.cisaRaw !== "") cisaSum += r.cisa;
+    cumulative.push({label:"Day "+(i+1), value:cisaSum});
+    target.push({label:"Day "+(i+1), value:(i+1)*TARGET.cisa});
+  });
+  const maxCisa = Math.max(...cumulative.map(d=>d.value), ...target.map(d=>d.value), 10);
+  drawAnalysisLine("chartCumulative", cumulative, { targetSeries:target, unit:"h", min:0, max:maxCisa*1.05 });
+
+  const dailyScores = rows.map((r,i)=>({label:"Day "+(i+1), value:r.filled ? r.score : null}));
+  const rolling = rollingAverage(dailyScores, 7);
+  drawAnalysisLine("chartRolling", rolling, {
+    unit:"%",
+    min:0,
+    max:100,
+    lines:[
+      {value:70,color:"#22c55e"},
+      {value:50,color:"#ef4444"}
+    ]
+  });
+
+  const wakeAvg = avg(filled.map(r=>r.wakeScore)) || 0;
+  const bedAvg = avg(filled.map(r=>r.bedScore)) || 0;
+  const cisaAvg = avg(filled.map(r=>r.cisaScore)) || 0;
+  const exAvg = avg(filled.map(r=>r.exerciseScore)) || 0;
+  const items = [
+    ["🌅 Wake-up", wakeAvg, "Target 07:00"],
+    ["📵 Bedtime", bedAvg, "Target 23:00"],
+    ["📘 CISA", cisaAvg, "Target 2h/day"],
+    ["🏃 Exercise", exAvg, "Target 30m/day"]
+  ];
+  el("habitBalance").innerHTML = items.map(([name,pct,sub]) => {
+    const rounded = Math.round(pct);
+    return `<div class="balance-row">
+      <div class="balance-head"><span>${name}</span><span>${rounded}%</span></div>
+      <div class="balance-track"><div class="balance-fill" style="width:${Math.max(0,Math.min(100,rounded))}%"></div></div>
+      <div class="sub">${sub}</div>
+    </div>`;
+  }).join("");
+
+  const dist = {bad:0, weak:0, good:0, excellent:0};
+  filled.forEach(r => {
+    if (r.score < 50) dist.bad++;
+    else if (r.score < 70) dist.weak++;
+    else if (r.score < 90) dist.good++;
+    else dist.excellent++;
+  });
+  const total = filled.length || 1;
+  el("qualityDistribution").innerHTML = [
+    ["Bad", dist.bad, "#fecaca", "score <50%"],
+    ["Weak", dist.weak, "#fed7aa", "50–69%"],
+    ["Good", dist.good, "#bbf7d0", "70–89%"],
+    ["Excellent", dist.excellent, "#22c55e", "90%+"]
+  ].map(([label,count,color,sub]) => `
+    <div class="dist-box" style="background:linear-gradient(180deg,${color},#fff)">
+      <div class="label">${label}</div>
+      <div class="big">${count}</div>
+      <div class="sub">${Math.round(count/total*100)}% • ${sub}</div>
+    </div>`).join("");
 }
+
 
 function addRisk(list, level, title, body, action) {
   list.push({level,title,body,action});
@@ -777,7 +866,7 @@ function render(rows) {
   renderHeatmap(rows);
   renderDailyTrend(rows);
   renderWeekly(rows);
-  renderTrendGraphics(rows);
+  renderAnalysisGraphics(rows);
   renderAlerts(rows);
 }
 function setFilter(name) {
