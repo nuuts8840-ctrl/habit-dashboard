@@ -147,6 +147,26 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
 .daily-chart-header { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; }
 .daily-chart-meta { color:var(--muted); font-size:12px; line-height:1.45; text-align:right; }
 .daily-svg { height:300px; }
+
+.compound-grid { grid-template-columns:1.2fr .8fr; }
+.compound-card { border:1px solid var(--line); border-radius:20px; padding:16px; background:#fff; }
+.compound-svg { width:100%; height:320px; display:block; overflow:visible; }
+.compound-note { display:grid; gap:10px; }
+.note-box { border:1px solid var(--line); border-radius:16px; padding:13px; background:#fff; }
+.note-box b { display:block; margin-bottom:4px; }
+.compound-controls { display:flex; flex-wrap:wrap; gap:9px; margin:4px 0 14px; }
+.compound-chip {
+  border:1px solid var(--line); background:#fff; color:var(--text);
+  padding:9px 11px; border-radius:999px; font-weight:850; cursor:pointer;
+}
+.compound-chip.active { background:#0f172a; color:#fff; border-color:#0f172a; }
+.compound-stat { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+.compound-stat .stat { border:1px solid var(--line); border-radius:16px; padding:12px; background:#f8fafc; }
+.compound-stat .stat .big { font-size:24px; font-weight:950; letter-spacing:-.04em; margin-top:4px; }
+@media (max-width:960px) {
+  .compound-grid, .compound-stat { grid-template-columns:1fr; }
+}
+
 @media (max-width:960px) {
   .analysis-grid { grid-template-columns:1fr; }
   .dist-grid { grid-template-columns:1fr 1fr; }
@@ -201,6 +221,40 @@ th { background:#f8fafc; color:#475467; text-transform:uppercase; font-size:11px
     <div class="mini"><div class="ring" id="ringBed" style="--pct:0"><span>--%</span></div><div><div class="habit-title">📵 Bedtime</div><div class="sub">Target 23:00</div></div></div>
     <div class="mini"><div class="ring" id="ringCisa" style="--pct:0"><span>--%</span></div><div><div class="habit-title">📘 CISA</div><div class="sub">Target 2h/day</div></div></div>
     <div class="mini"><div class="ring" id="ringExercise" style="--pct:0"><span>--%</span></div><div><div class="habit-title">🏃 Exercise</div><div class="sub">Target 30m/day</div></div></div>
+  
+</section>
+
+  <section class="card">
+    <h2>Atomic-style 1% habit compounding</h2>
+    <p class="muted" style="margin-bottom:12px">Өдөр бүрийн жижиг ялгаа урт хугацаанд хэрхэн том зөрүү болдгийг харуулна. Энэ бол dashboard-д зориулсан original visualization.</p>
+    <div class="compound-controls">
+      <button class="compound-chip active" data-compound="overall" onclick="setCompoundFilter('overall')">Overall</button>
+      <button class="compound-chip" data-compound="wake" onclick="setCompoundFilter('wake')">🌅 Wake-up</button>
+      <button class="compound-chip" data-compound="bed" onclick="setCompoundFilter('bed')">📵 Bedtime</button>
+      <button class="compound-chip" data-compound="cisa" onclick="setCompoundFilter('cisa')">📘 CISA Study</button>
+      <button class="compound-chip" data-compound="exercise" onclick="setCompoundFilter('exercise')">🏃 Exercise</button>
+    </div>
+    <div class="grid compound-grid">
+      <div class="compound-card">
+        <div class="chart-legend">
+          <span><i class="legend-dot" style="background:#22c55e"></i>+1% ideal</span>
+          <span><i class="legend-dot" style="background:#ef4444"></i>-1% ideal</span>
+          <span><i class="legend-dot" style="background:#2563eb"></i>Your actual curve</span>
+          <span><i class="legend-dot" style="background:#0f172a"></i>Baseline</span>
+        </div>
+        <div id="compoundChart"></div>
+        <div class="compound-stat">
+          <div class="stat"><div class="label">Actual index</div><div id="compoundActual" class="big">--</div></div>
+          <div class="stat"><div class="label">Good days</div><div id="compoundGood" class="big">--</div></div>
+          <div class="stat"><div class="label">Bad days</div><div id="compoundBad" class="big">--</div></div>
+        </div>
+      </div>
+      <div class="compound-note">
+        <div class="note-box"><b>🟢 +1% өдөр</b><span class="sub">Тухайн habit target-д хүрсэн эсвэл сайн score авсан өдөр. Жижиг ялалт compound болно.</span></div>
+        <div class="note-box"><b>🔴 -1% өдөр</b><span class="sub">Habit хоосон, 0, эсвэл bad zone-д орсон өдөр. Нэг өдөр бага мэт боловч давтагдвал curve унана.</span></div>
+        <div class="note-box"><b>🔵 Actual curve</b><span class="sub">Чиний бодит data-аас тооцсон curve. 100-аас дээш бол habit system өсөж байна, доош бол system алдагдаж байна.</span></div>
+      </div>
+    </div>
   </section>
 
   <section class="grid main">
@@ -319,6 +373,7 @@ const TARGET = { wake:"07:00", bed:"23:00", cisa:2, exercise:30 };
 let ALL_ROWS = [];
 let ACTIVE_FILTER = "overall";
 let ACTIVE_DAILY_TREND = "overall";
+let ACTIVE_COMPOUND = "overall";
 const el = id => document.getElementById(id);
 
 function parseCSV(text) {
@@ -482,6 +537,90 @@ function renderWeekly(rows) {
       <td>${missingTxt}</td><td>${risk}</td>
     </tr>`;
   }).join("");
+}
+
+
+
+function setCompoundFilter(name) {
+  ACTIVE_COMPOUND = name;
+  document.querySelectorAll(".compound-chip").forEach(btn => btn.classList.toggle("active", btn.dataset.compound === name));
+  renderCompoundChart(ALL_ROWS);
+}
+
+function compoundMetricScore(r, filter) {
+  if (filter === "wake") return r.wake ? r.wakeScore : null;
+  if (filter === "bed") return r.bed ? r.bedScore : null;
+  if (filter === "cisa") return r.cisaRaw !== "" ? r.cisaScore : null;
+  if (filter === "exercise") return r.exerciseRaw !== "" ? r.exerciseScore : null;
+  return r.filled ? r.score : null;
+}
+
+function compoundStep(score) {
+  if (score === null || !Number.isFinite(score)) return -0.01;
+  if (score >= 70) return 0.01;   // good day
+  if (score < 50) return -0.01;   // bad day
+  return 0;                       // neutral day
+}
+
+function renderCompoundChart(rows) {
+  const node = el("compoundChart");
+  if (!rows.length) {
+    node.innerHTML = '<div class="chart-empty">Data байхгүй байна.</div>';
+    return;
+  }
+
+  const actual = [];
+  const plus = [];
+  const minus = [];
+  const baseline = [];
+  let idx = 100;
+  let goodDays = 0;
+  let badDays = 0;
+
+  rows.forEach((r, i) => {
+    const score = compoundMetricScore(r, ACTIVE_COMPOUND);
+    const step = compoundStep(score);
+    if (step > 0) goodDays++;
+    if (step < 0) badDays++;
+    idx = idx * (1 + step);
+    actual.push({day:i+1, value:idx, score});
+    plus.push({day:i+1, value:100*Math.pow(1.01, i+1)});
+    minus.push({day:i+1, value:100*Math.pow(0.99, i+1)});
+    baseline.push({day:i+1, value:100});
+  });
+
+  const width = 1120, height = 320, padL = 52, padR = 28, padT = 26, padB = 40;
+  const vals = [...actual, ...plus, ...minus, ...baseline].map(d=>d.value);
+  let min = Math.min(...vals) * 0.96;
+  let max = Math.max(...vals) * 1.04;
+  if (min === max) max += 1;
+
+  const x = day => padL + ((day-1) / Math.max(1, rows.length-1)) * (width-padL-padR);
+  const y = v => height-padB - ((v-min)/(max-min)) * (height-padT-padB);
+  const toPts = arr => arr.map(d=>`${x(d.day)},${y(d.value)}`).join(" ");
+
+  const actualLast = actual[actual.length-1];
+  el("compoundActual").textContent = Math.round(actualLast.value);
+  el("compoundGood").textContent = goodDays;
+  el("compoundBad").textContent = badDays;
+
+  node.innerHTML = `
+    <svg class="compound-svg" viewBox="0 0 ${width} ${height}">
+      <line x1="${padL}" y1="${height-padB}" x2="${width-padR}" y2="${height-padB}" stroke="#e5e7eb"/>
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${height-padB}" stroke="#e5e7eb"/>
+      <polyline points="${toPts(plus)}" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"/>
+      <polyline points="${toPts(minus)}" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+      <polyline points="${toPts(baseline)}" fill="none" stroke="#0f172a" stroke-width="1.5" stroke-dasharray="5 6"/>
+      <polyline points="${toPts(actual)}" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${actual.filter((_,i)=>i%7===0 || i===actual.length-1).map(d=>`<circle cx="${x(d.day)}" cy="${y(d.value)}" r="3.5" fill="#2563eb"><title>Day ${d.day}: index ${Math.round(d.value)} • score ${Math.round(d.score||0)}%</title></circle>`).join("")}
+      <text x="${padL}" y="${padT-8}" font-size="11" fill="#64748b">${Math.round(max)}</text>
+      <text x="${padL}" y="${height-padB+20}" font-size="11" fill="#64748b">${Math.round(min)}</text>
+      <text x="${width-padR}" y="${y(plus[plus.length-1].value)-7}" text-anchor="end" font-size="11" fill="#16a34a">+1% ideal</text>
+      <text x="${width-padR}" y="${y(minus[minus.length-1].value)+14}" text-anchor="end" font-size="11" fill="#dc2626">-1% ideal</text>
+      <text x="${width-padR}" y="${y(actualLast.value)-8}" text-anchor="end" font-size="11" fill="#2563eb">your curve</text>
+      <text x="${padL}" y="${height-9}" font-size="11" fill="#64748b">Day 1</text>
+      <text x="${width-padR}" y="${height-9}" text-anchor="end" font-size="11" fill="#64748b">Day ${rows.length}</text>
+    </svg>`;
 }
 
 
@@ -864,6 +1003,7 @@ function render(rows) {
   updateRing("ringCisa", avg(filled.map(r=>r.cisaScore)) || 0);
   updateRing("ringExercise", avg(filled.map(r=>r.exerciseScore)) || 0);
   renderHeatmap(rows);
+  renderCompoundChart(rows);
   renderDailyTrend(rows);
   renderWeekly(rows);
   renderAnalysisGraphics(rows);
